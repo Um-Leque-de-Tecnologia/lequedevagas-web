@@ -42,6 +42,10 @@ export default async function PaginaDaVaga({ params }: Props) {
   const { id } = await params;
   const [vaga, noBanco] = await Promise.all([buscarVaga(id), buscarVagaNoBanco(id)]);
 
+  /* Repare no que esta página NÃO faz: ler a sessão. Ela é igual para todo
+     mundo e continua pré-gerada (●). Quem pergunta "quem é você?" é a ação
+     da candidatura, a cada envio (aula 07). */
+
   /* O id que não existe — ou que foi arquivado. notFound() não devolve nada — ele interrompe a
      renderização e entrega o not-found.tsx desta pasta, escrito na aula 02,
      que só agora tem quem o chame. */
@@ -74,7 +78,9 @@ export default async function PaginaDaVaga({ params }: Props) {
           <p className="numeros">
             {noBanco._count.candidaturas === 1
               ? "1 candidatura pelo site até agora."
-              : `${noBanco._count.candidaturas} candidaturas pelo site até agora.`}
+              : `${noBanco._count.candidaturas} candidaturas pelo site até agora.`}{" "}
+            Para se candidatar, <Link href="/entrar">entre</Link> com uma conta de candidata
+            — ou <Link href="/cadastro">crie a sua</Link>.
           </p>
           <FormularioDeCandidatura vaga={vaga} />
         </>

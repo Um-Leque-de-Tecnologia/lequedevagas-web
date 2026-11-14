@@ -9,15 +9,15 @@ import type { Vaga } from "@/lib/tipos";
 const HABILIDADES = ["HTML", "CSS", "JavaScript", "React", "SQL"];
 
 /**
- * A candidatura, de `onSubmit` para `action` (aula 05).
+ * A candidatura, depois de três aulas:
  *
- * Na aula 03 eram cinco useState, um preventDefault e um "enviada" que só
- * existia nesta aba. Agora o dado vai para o servidor, e o formulário
- * funciona até com o JavaScript desligado.
+ * - aula 03: useState em tudo, e o dado morria nesta aba;
+ * - aula 05: `action` em vez de `onSubmit` — o dado vai para o servidor, e o
+ *   formulário funciona até com o JavaScript desligado;
+ * - aula 07: nome e e-mail saíram — vêm da CONTA de quem está na sessão.
  */
 export default function FormularioDeCandidatura({ vaga }: { vaga: Vaga }) {
   const [estado, acaoDoForm] = useActionState(enviarCandidatura, ESTADO_INICIAL);
-  const { valores, erros } = estado;
 
   // A tela de sucesso da aula 03 continua existindo. O que mudou é quem a
   // liga: era um useState local, agora é o `ok` que veio do servidor.
@@ -32,24 +32,11 @@ export default function FormularioDeCandidatura({ vaga }: { vaga: Vaga }) {
 
   return (
     <form action={acaoDoForm} className="formulario" noValidate>
-      {/* Campo escondido: a ação precisa saber de QUAL vaga é. Aqui um hidden
-          serve — trocá-lo só faz a pessoa se candidatar a outra vaga pública,
-          que é uma coisa que ela já podia fazer clicando. */}
+      {/* Campo escondido: a ação precisa saber de QUAL vaga é. Trocá-lo só
+          faz a pessoa se candidatar a outra vaga pública — coisa que ela já
+          podia fazer clicando. QUEM se candidata vem da sessão, nunca daqui. */}
       <input type="hidden" name="vagaId" value={vaga.id} />
-
-      {/* Sem value, sem onChange, sem useState: o campo voltou a ser NÃO
-          CONTROLADO, e é o <form> que sabe o que tem dentro dele. */}
-      <label>
-        Nome completo
-        <input name="nome" autoComplete="name" defaultValue={valores.nome} />
-      </label>
-      {erros.nome && <p className="erro">{erros.nome}</p>}
-
-      <label>
-        E-mail
-        <input name="email" type="email" autoComplete="email" defaultValue={valores.email} />
-      </label>
-      {erros.email && <p className="erro">{erros.email}</p>}
+      <p className="numeros">Você se candidata com o nome e o e-mail da sua conta.</p>
 
       {/* A LISTA. Vários checkboxes com o MESMO name — do outro lado,
           dados.getAll("habilidades"). É a forma que funciona sem JS. */}
@@ -61,13 +48,13 @@ export default function FormularioDeCandidatura({ vaga }: { vaga: Vaga }) {
               type="checkbox"
               name="habilidades"
               value={h}
-              defaultChecked={valores.habilidades?.split(",").includes(h)}
+              defaultChecked={estado.valores.habilidades?.split(",").includes(h)}
             />
             {h}
           </label>
         ))}
       </fieldset>
-      {erros.habilidades && <p className="erro">{erros.habilidades}</p>}
+      {estado.erros.habilidades && <p className="erro">{estado.erros.habilidades}</p>}
 
       <BotaoDeEnviar>Enviar candidatura</BotaoDeEnviar>
       {estado.mensagem && (

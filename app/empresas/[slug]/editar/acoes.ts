@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 import { buscarEmpresa, guardarEmpresa } from "@/lib/api";
 import { EsquemaDaEmpresa } from "@/lib/esquemas";
 import { porCampo, valoresDe } from "@/lib/formulario";
+import { podeEditarEmpresa } from "@/lib/permissoes";
+import { usuarioAtual } from "@/lib/sessao";
 import type { Estado } from "@/lib/tipos";
 
 /**
- * Editar o perfil da empresa (aula 05, frente 2 → aula 06).
+ * Editar o perfil da empresa (aula 05, frente 2 → aula 06 → aula 07).
  *
  * O slug NÃO vem do formulário: ele é preso à ação com .bind() no
  * componente, e chega como primeiro argumento, antes do estado. Um
@@ -19,6 +21,18 @@ export async function salvarEmpresa(
   dados: FormData,
 ): Promise<Estado> {
   const valores = valoresDe(dados);
+
+  /* A porta que o .bind deixou aberta (aula 07). O slug preso diz QUAL
+     empresa; só a sessão diz QUEM está pedindo. As duas perguntas, aqui. */
+  const quem = await usuarioAtual();
+  if (!podeEditarEmpresa(quem, slug)) {
+    return {
+      ok: false,
+      erros: {},
+      valores,
+      mensagem: "Só quem fala por esta empresa pode editar o perfil.",
+    };
+  }
 
   const analise = EsquemaDaEmpresa.safeParse(Object.fromEntries(dados));
   if (!analise.success) {
@@ -39,8 +53,6 @@ export async function salvarEmpresa(
      testando só a tela em que estava trabalhando. */
   revalidatePath(`/empresas/${slug}`);
   revalidatePath("/empresas");
-  // E esta tela também: quem voltar a ela depois tem de ver o que salvou.
-  revalidatePath(`/empresas/${slug}/editar`);
 
   /* SEM redirect: a pessoa continua editando. redirect é para quando ela
      terminou; estado de sucesso é para quando ela continua onde está. */

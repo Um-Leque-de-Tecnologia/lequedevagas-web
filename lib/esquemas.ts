@@ -15,7 +15,8 @@ import { z } from "zod";
 // ─── FRENTE 1 · vaga ────────────────────────────────────────────────────
 export const EsquemaDaVaga = z.object({
   titulo: z.string("Dê um título à vaga.").trim().min(5, "O título precisa de pelo menos 5 letras."),
-  empresaSlug: z.string("Escolha a empresa.").min(1, "Escolha a empresa."),
+  // (aula 07) O empresaSlug saiu daqui: por qual empresa se publica vem da
+  // SESSÃO. Campo fora do esquema é ignorado — mandar um no POST não adianta.
   area: z.string("Diga a área.").trim().min(1, "Diga a área: Front-end, Dados, QA…"),
   senioridade: z.string("Diga a senioridade.").trim().min(1, "Diga a senioridade: Estágio, Júnior ou Pleno."),
   local: z.string("Diga onde é.").trim().min(1, "Diga onde é: remoto, híbrido ou a cidade."),
@@ -56,10 +57,8 @@ export const EsquemaDaEmpresa = z.object({
 // ─── FRENTE 3 · candidatura ─────────────────────────────────────────────
 export const EsquemaDaCandidatura = z.object({
   vagaId: z.string("Vaga não informada.").min(1, "Vaga não informada."),
-  nome: z.string("Diga o seu nome completo.").trim().min(3, "Diga o seu nome completo."),
-  email: z.email("Esse e-mail não parece válido."),
-  // A lista chega pelo dados.getAll("habilidades") — veja a ação. A regra
-  // da aula 03 ("ao menos uma") continua existindo: só mudou de lado.
+  // (aula 07) nome e e-mail saíram: quem se candidata é quem está na sessão.
+  // A lista chega pelo dados.getAll("habilidades") — veja a ação.
   habilidades: z.array(z.string()).min(1, "Escolha ao menos uma habilidade."),
 });
 
@@ -68,4 +67,20 @@ export const EsquemaDaCandidatura = z.object({
 // chega igual pelo POST, e é o mesmo caminho de qualquer outro dado.
 export const EsquemaDeArquivar = z.object({
   id: z.string("Vaga não informada.").min(1, "Vaga não informada."),
+});
+
+// ─── AULA 07 · entrar e criar conta ─────────────────────────────────────
+export const EsquemaDoLogin = z.object({
+  email: z.email("Esse e-mail não parece válido."),
+  senha: z.string("Digite a senha.").min(1, "Digite a senha."),
+});
+
+// Repare no que NÃO está aqui: o papel. Quem se cadastra pelo site é
+// candidata, e quem decide isso é a ação.
+export const EsquemaDoCadastro = z.object({
+  nome: z.string("Diga o seu nome completo.").trim().min(3, "Diga o seu nome completo."),
+  email: z.email("Esse e-mail não parece válido."),
+  senha: z
+    .string("A senha precisa de pelo menos 8 caracteres.")
+    .min(8, "A senha precisa de pelo menos 8 caracteres."),
 });

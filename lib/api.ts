@@ -1,3 +1,4 @@
+import type { Papel } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { Candidatura, Empresa, Vaga } from "@/lib/tipos";
 
@@ -8,7 +9,9 @@ import type { Candidatura, Empresa, Vaga } from "@/lib/tipos";
  * - aula 04: o único com `fetch` e com a URL do JSON publicado;
  * - aula 05: o único que guarda — as ações chamam as funções de escrita;
  * - aula 06: o único que fala com o banco. O array em memória da aula 05
- *   virou Prisma aqui dentro, e NENHUMA página mudou de linha por isso.
+ *   virou Prisma aqui dentro, e NENHUMA página mudou de linha por isso;
+ * - aula 07: as escritas ganharam dono — um argumento, nunca um campo do
+ *   formulário.
  *
  * Duas fontes convivem, e a regra de cada uma está no DADOS.md: o JSON é
  * o que o time publica no repositório; o banco é o que se escreve pelo site.
@@ -42,7 +45,7 @@ async function buscarEmpresasPublicadas(): Promise<Empresa[]> {
 }
 
 /* Os campos do type, e só eles. O banco tem mais (criadaEm, arquivada,
-   editadaEm) — e eles ficam aqui dentro: a página não precisa saber que
+   autorId) — e eles ficam aqui dentro: a página não precisa saber que
    existem, e um Date a mais viajando para o cliente é peso à toa. */
 const CAMPOS_DA_VAGA = {
   id: true,
@@ -108,16 +111,17 @@ export async function contarVagas(): Promise<{ total: number; iniciantes: number
 }
 
 /**
- * A vaga como o BANCO a conhece: a empresa, se está arquivada e quantas
- * candidaturas ela tem. Vaga do dados/vagas.json não está na tabela — volta
- * null. É o que a candidatura e o arquivar precisam para decidir, e o que a
- * página da vaga usa para mostrar o número.
+ * A vaga como o BANCO a conhece: o dono, a empresa e quantas candidaturas
+ * ela tem. Vaga do dados/vagas.json não está na tabela — volta null. É o
+ * que a candidatura e o arquivar precisam para decidir, e o que a página
+ * da vaga usa para mostrar o número.
  */
 export async function buscarVagaNoBanco(id: string) {
   return prisma.vaga.findUnique({
     where: { id },
     select: {
       id: true,
+      autorId: true,
       empresaSlug: true,
       arquivada: true,
       // `_count` pede ao banco só o NÚMERO, sem trazer as linhas.
@@ -153,12 +157,41 @@ export async function buscarEmpresa(slug: string): Promise<Empresa | undefined> 
   return publicadas.find((empresa) => empresa.slug === slug);
 }
 
+/** As vagas de UMA pessoa, para o /painel, com o número de candidaturas. */
+export async function listarVagasDoAutor(autorId: string) {
+  return prisma.vaga.findMany({
+    where: { autorId, arquivada: false },
+    orderBy: { criadaEm: "desc" },
+    select: { id: true, titulo: true, _count: { select: { candidaturas: true } } },
+  });
+}
+
+/** As candidaturas de UMA pessoa, com o título da vaga. */
+export async function listarCandidaturasDe(pessoaId: string) {
+  return prisma.candidatura.findMany({
+    where: { pessoaId },
+    orderBy: { criadaEm: "desc" },
+    select: {
+      id: true,
+      criadaEm: true,
+      vaga: { select: { id: true, titulo: true, empresa: true } },
+    },
+  });
+}
+
+/** Só para a mensagem do cadastro: a tranca de verdade é o @unique. */
+export async function emailJaTemConta(email: string) {
+  const achada = await prisma.pessoa.findUnique({ where: { email }, select: { id: true } });
+  return achada !== null;
+}
+
 // ─── ESCRITA ────────────────────────────────────────────────────────────
 // Na aula 05 nenhuma era async: escreviam num array. Na aula 06 viraram
-// banco, e só aí ganharam o `async` — o TypeScript apontou cada chamada.
+// banco, e só aí ganharam o `async`. Na aula 07, o dono virou argumento.
 
-export async function guardarVaga(vaga: Vaga) {
-  await prisma.vaga.create({ data: vaga });
+/** A vaga nasce com dono — e o dono é argumento, não campo do formulário. */
+export async function guardarVaga(vaga: Vaga, autorId: string) {
+  await prisma.vaga.create({ data: { ...vaga, autorId } });
 }
 
 /** Arquivar não apaga: marca. Apagar perderia as candidaturas e o histórico. */
@@ -166,7 +199,8 @@ export async function arquivarVaga(id: string) {
   await prisma.vaga.update({ where: { id }, data: { arquivada: true } });
 }
 
-export async function guardarCandidatura(candidatura: Candidatura) {
+/** A candidatura tem dona — mais um argumento que não vem do formulário. */
+export async function guardarCandidatura(candidatura: Candidatura, pessoaId: string) {
   await prisma.candidatura.create({
     data: {
       id: candidatura.id,
@@ -176,6 +210,7 @@ export async function guardarCandidatura(candidatura: Candidatura) {
       // SQLite não guarda lista: vira texto aqui, e só aqui.
       habilidades: candidatura.habilidades.join(", "),
       criadaEm: new Date(candidatura.enviadaEm),
+      pessoaId,
     },
   });
 }
@@ -193,3 +228,12 @@ export async function guardarEmpresa(empresa: Empresa) {
   });
 }
 
+/** O papel é argumento — quem escolhe é a ação, nunca o formulário. */
+export async function guardarPessoa(pessoa: {
+  nome: string;
+  email: string;
+  senhaHash: string;
+  papel: Papel;
+}) {
+  await prisma.pessoa.create({ data: pessoa });
+}

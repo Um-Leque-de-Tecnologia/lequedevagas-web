@@ -3,11 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { buscarVagaNoBanco, guardarCandidatura } from "@/lib/api";
 import { EsquemaDaCandidatura } from "@/lib/esquemas";
-import { porCampo, valoresDe } from "@/lib/formulario";
+import { porCampo } from "@/lib/formulario";
+import { podeCandidatar } from "@/lib/permissoes";
+import { usuarioAtual } from "@/lib/sessao";
 import type { Estado } from "@/lib/tipos";
 
 /**
- * Candidatar-se (aula 05, frente 3 → aula 06).
+ * Candidatar-se (aula 05, frente 3 → aula 06 → aula 07).
  *
  * DOIS parâmetros: com useActionState o Next chama a ação com o estado
  * anterior na frente. Quem declara só (dados: FormData) recebe o ESTADO no
@@ -17,18 +19,21 @@ export async function enviarCandidatura(
   estadoAnterior: Estado,
   dados: FormData,
 ): Promise<Estado> {
-  // As habilidades são uma LISTA, e Object.fromEntries só guarda o último
-  // valor de cada chave repetida. Para lista existe o getAll.
+  // As habilidades são uma LISTA, e Object.fromEntries só guardaria a
+  // última. Para lista existe o getAll.
   const habilidades = dados.getAll("habilidades").map(String);
-  const valores = { ...valoresDe(dados), habilidades: habilidades.join(",") };
+  const valores = { habilidades: habilidades.join(",") };
+
+  /* 0. QUEM ESTÁ CHAMANDO? (aula 07) A página da vaga é estática (●): ela
+        não sabe quem está olhando. Quem sabe é a AÇÃO, que roda com o
+        cookie de quem mandou. */
+  const quem = await usuarioAtual();
+  if (!podeCandidatar(quem)) {
+    return { ok: false, erros: {}, valores, mensagem: "Entre como candidata para se candidatar." };
+  }
 
   // 1. DESCONFIE. Nada do que chegou aqui passou pelo seu formulário.
-  const analise = EsquemaDaCandidatura.safeParse({
-    vagaId: dados.get("vagaId"),
-    nome: dados.get("nome"),
-    email: dados.get("email"),
-    habilidades,
-  });
+  const analise = EsquemaDaCandidatura.safeParse({ vagaId: dados.get("vagaId"), habilidades });
   if (!analise.success) {
     return { ok: false, erros: porCampo(analise.error), valores };
   }
@@ -41,14 +46,20 @@ export async function enviarCandidatura(
     return { ok: false, erros: {}, valores, mensagem: "Esta vaga não recebe mais candidaturas." };
   }
 
-  await guardarCandidatura({
-    ...analise.data,
-    id: crypto.randomUUID(),
-    enviadaEm: new Date().toISOString(),
-  });
+  // 3. Nome e e-mail vêm da CONTA, não de um campo: ninguém se candidata em
+  //    nome de outra pessoa. E a dona é argumento, não campo.
+  await guardarCandidatura(
+    {
+      ...analise.data,
+      nome: quem.nome,
+      email: quem.email,
+      id: crypto.randomUUID(),
+      enviadaEm: new Date().toISOString(),
+    },
+    quem.id,
+  );
 
-  // 3. AVISE O CACHE: a página da vaga passou a mostrar quantas
-  //    candidaturas ela tem (aula 06). Na aula 05 não havia o que revalidar.
+  // 4. AVISE O CACHE: a página da vaga mostra quantas candidaturas ela tem.
   revalidatePath(`/vagas/${vaga.id}`);
 
   return { ok: true, erros: {}, valores: {}, mensagem: "Candidatura enviada!" };

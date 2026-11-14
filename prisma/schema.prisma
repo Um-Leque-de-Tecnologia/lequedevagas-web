@@ -4,7 +4,7 @@
 
 // O gerador do slide da aula 06: o cliente sai em node_modules, e todo
 // arquivo importa de "@prisma/client". (O `prisma init` do 6.19 gera outro,
-// com `output`; o lib/prisma.ts daqui depende deste.)
+// com `output`; o seed.mjs e o lib/prisma.ts daqui dependem deste.)
 generator client {
   provider = "prisma-client-js"
 }
@@ -29,6 +29,12 @@ model Vaga {
 
   // frente 4 · aula 06 — arquivar não apaga: marca.
   arquivada Boolean @default(false)
+
+  // frente 1 · aula 07 — quem publicou. OPCIONAL: as vagas criadas antes
+  // da aula 07 não têm dono, e a tabela precisa continuar aceitando essas
+  // linhas. Vaga sem dono ninguém arquiva (PERMISSOES.md).
+  autorId String?
+  autor   Pessoa? @relation(fields: [autorId], references: [id])
 
   // frente 3 · aula 06 — o outro lado da relação
   candidaturas Candidatura[]
@@ -57,5 +63,26 @@ model Candidatura {
   vagaId   String
   vaga     Vaga     @relation(fields: [vagaId], references: [id])
   criadaEm DateTime @default(now())
+
+  // frente 3 · aula 07 — de quem é. Opcional pelo mesmo motivo do autorId.
+  pessoaId String?
+  pessoa   Pessoa? @relation(fields: [pessoaId], references: [id])
 }
 
+// ─── aula 07 · LAB 2 ────────────────────────────────────────────────────
+enum Papel {
+  candidata
+  empresa
+}
+
+model Pessoa {
+  id          String  @id @default(uuid())
+  nome        String
+  email       String  @unique // é o login: dois iguais não podem existir
+  senhaHash   String // nunca a senha: o que o bcrypt devolveu
+  papel       Papel   @default(candidata)
+  empresaSlug String? // só quem é "empresa": por qual ela fala
+
+  vagas        Vaga[] // frente 1 · aula 07
+  candidaturas Candidatura[] // frente 3 · aula 07
+}

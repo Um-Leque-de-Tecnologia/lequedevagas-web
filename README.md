@@ -4,7 +4,7 @@ Projeto de referência do curso **Introdução ao Next.js** (NickDev). Um mural 
 vagas de tecnologia para quem está migrando de carreira.
 
 Este repositório está **no estado esperado depois dos desafios das aulas 01 a
-06**. Ele existe para você comparar com o seu: abrir um arquivo, ver como ficou
+07**. Ele existe para você comparar com o seu: abrir um arquivo, ver como ficou
 aqui e entender por quê. Não é para clonar e entregar — o que vale nota é o
 seu, com os seus dados e as suas decisões.
 
@@ -14,14 +14,30 @@ Precisa de Node 20 ou mais novo (conferido com o 24).
 
 ```bash
 npm ci                     # instala, e o postinstall roda o prisma generate
-cp .env.example .env       # o DATABASE_URL
+cp .env.example .env       # deixe só a linha do DATABASE_URL
 npx prisma migrate dev     # monta o prisma/dev.db a partir das migrations
+npx prisma db seed         # 3 pessoas de laboratório, senha "leque1234"
+```
+
+Crie o `.env.local` com um `AUTH_SECRET` novo — ele é o que cifra o cookie de
+login, e quem o tem fabrica o login de qualquer pessoa:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+# .env.local
+AUTH_SECRET="o texto que o comando acima imprimiu"
+AUTH_TRUST_HOST=true       # só para o npm start na sua máquina
+```
+
+```bash
 npm run dev
 ```
 
-Abre em <http://localhost:3000>.
+Abre em <http://localhost:3000>. Entre como `ana@exemplo.com` (publica pela
+Aurora Tech), `bruno@exemplo.com` (Nuvem Rosa) ou `carla@exemplo.com`
+(candidata) — veja a tabela em [`PERMISSOES.md`](PERMISSOES.md).
 
-O `dev.db` e o `.env` **não vão para o Git**. O `npm run build` e o
+O `dev.db`, o `.env` e o `.env.local` **não vão para o Git**. O `npm run build` e o
 `npm run dev` também **buscam dados pela rede**, do próprio repositório no
 GitHub (veja `lib/api.ts`): sem internet, o build não passa.
 
@@ -39,8 +55,8 @@ Em dois lugares, e só o `lib/api.ts` sabe disso — as regras estão no
   buscados do GitHub. Uma vaga nova ali aparece no site **no pior caso pouco
   mais de um minuto depois do push** (`revalidate: 60`); uma empresa, em até
   uma hora (`revalidate: 3600`).
-- **O que se escreve pelo site** — vagas publicadas, perfis editados e
-  candidaturas — mora num banco SQLite, o `prisma/dev.db`. Ele **sobrevive ao
+- **O que se escreve pelo site** — vagas publicadas, perfis editados,
+  candidaturas e contas — mora num banco SQLite, o `prisma/dev.db`. Ele **sobrevive ao
   restart** do servidor (na aula 05 era um array em memória, e sumia). Mas ele
   existe **só na sua máquina**: o site publicado na Vercel não tem esse
   arquivo. Colocar o backend no ar é a aula 09.
@@ -118,6 +134,47 @@ com o mesmo `useState`. O que mudou é de onde vem a lista que eles recebem.
 | `app/api/vagas/route.ts`, `app/api/empresas/[slug]/route.ts` | Route Handlers: um endereço para quem **não** é a sua tela |
 | `DADOS.md` | as decisões de dados, por escrito, antes do esquema |
 
+**Aula 07 — cada coisa tem dono (autenticação e autorização).**
+
+| Onde | O que ensina |
+| --- | --- |
+| `auth.ts`, `app/api/auth/[...nextauth]/` | Auth.js 5 com Credentials e bcrypt; o crachá guarda só o id |
+| `proxy.ts` | o atalho: quem nem entrou volta para `/entrar` — não é a tranca |
+| `lib/sessao.ts` | `usuarioAtual()`: o cookie diz o id, o banco diz o resto, com `cache` do React |
+| `lib/permissoes.ts` | as regras, puras, chamadas pela tela **e** pela ação ([`PERMISSOES.md`](PERMISSOES.md)) |
+| `app/**/acoes.ts` | a primeira pergunta de toda ação que escreve: **quem está chamando?** |
+| `app/entrar/`, `app/cadastro/` | o login com uma frase só para e-mail e senha errados; o cadastro com papel fixo |
+| `app/painel/` | a única página que lê a sessão para desenhar: suas vagas (com o Arquivar) ou suas candidaturas |
+| `prisma/seed.mjs` | as pessoas de laboratório, com a senha passada pelo bcrypt |
+
+## O que o build mostra
+
+```
+┌ ○ /                                1m      1y
+├ ○ /_not-found
+├ ƒ /api/auth/[...nextauth]
+├ ƒ /api/empresas/[slug]
+├ ƒ /api/vagas
+├ ○ /cadastro
+├ ○ /empresas                        1m      1y
+├   /empresas/[slug]                 ● cinco empresas
+├ ƒ /empresas/[slug]/editar
+├ ○ /entrar
+├ ƒ /painel
+├ ○ /privacidade
+├ ○ /sobre
+├ ○ /termos
+├ ○ /vagas                           1m      1y
+├   /vagas/[id]                      ● uma por vaga
+└ ƒ /vagas/nova
+ƒ Proxy (Middleware)
+```
+
+**Só três páginas são `ƒ`, e as três já eram de uma pessoa só:** o painel, o
+publicar e o editar da empresa. Mural, vaga e empresa são iguais para todo
+mundo e continuam pré-gerados. Se a sua tabela tiver mais `ƒ`, alguém está
+lendo a sessão ou um cookie onde não precisava — no layout, por exemplo.
+
 ## O que NÃO tem, de propósito
 
 Se você achar que está faltando, provavelmente está — mas na aula seguinte.
@@ -125,15 +182,15 @@ Se você achar que está faltando, provavelmente está — mas na aula seguinte.
 - **Tailwind.** CSS comum até a aula 08.
 - **O backend no ar.** O banco é um arquivo na sua máquina; o site publicado
   não o enxerga. Aula 09.
-- **Saber quem é quem.** Hoje qualquer pessoa publica por qualquer empresa,
-  edita qualquer perfil e arquiva qualquer vaga. Aula 07.
+- **Editar e apagar vaga**, com carregamento e erro em todo formulário. Aula 10.
 - **Validação no cliente.** Quem valida é só o servidor — e ele é quem vale.
 
 ## Detalhes que costumam pegar
 
 **Instale com a versão escrita.** `npm i prisma` hoje traz uma versão
-candidata de outra geração. Aqui: `prisma@6.19.3`, `@prisma/client@6.19.3` e
-`zod@4.6.7` — todas com `-E`.
+candidata de outra geração. `npm i next-auth` traz o 4, com outra API. Aqui:
+`prisma@6.19.3`, `@prisma/client@6.19.3`, `next-auth@5.0.0-beta.32`,
+`bcryptjs@3.0.3` e `zod@4.6.7` — todas com `-E`.
 
 **`"use server"` é a primeira linha do arquivo.** Depois de um `import` ela não
 vale, e o erro fala de "Functions cannot be passed directly to Client
@@ -144,7 +201,19 @@ dados)`. Com um só, ela recebe o estado no lugar do `FormData`, e todo campo
 vira `undefined` sem erro nenhum.
 
 **O `redirect` lança.** Por isso ele é a última linha da ação, fora de
-qualquer `try`: um `catch` em volta engole o redirecionamento em silêncio.
+qualquer `try`: um `catch` em volta engole o redirecionamento em silêncio. E
+por isso o `catch` da ação `entrar` termina em `throw erro`: o login que deu
+certo sai por ali.
+
+**A tela não é a tranca.** A página `/vagas/nova` confere o papel quando é
+desenhada; a ação roda depois, com o cookie que chegar. A regra está nos dois
+lugares, escrita uma vez só em `lib/permissoes.ts`.
+
+**Vaga arquivada ou que não existe responde 200, não 404.** A tela é a do
+`not-found.tsx`, com `<meta name="robots" content="noindex">`. É porque
+`/vagas/[id]` tem `loading.tsx`: a resposta começa a ser transmitida antes de o
+`notFound()` rodar, e o status já foi enviado. Está na documentação do Next 16
+(`loading.md`, "Status codes").
 
 **`revalidateTag("vagas")` não tira a arquivada da tela.** Ele busca o
 `vagas.json` de novo — e o JSON volta igual, porque quem guardou a arquivada
@@ -197,7 +266,11 @@ app/
 │   ├── layout.tsx
 │   ├── termos/page.tsx            /termos
 │   └── privacidade/page.tsx       /privacidade
+├── entrar/                        página, formulário e ação de login
+├── cadastro/                      página, formulário e ação de criar conta
+├── painel/                        ƒ — a área de quem entrou, e o sair
 ├── api/
+│   ├── auth/[...nextauth]/        o Auth.js
 │   ├── vagas/                     GET /api/vagas
 │   └── empresas/[slug]/           GET /api/empresas/aurora-tech
 ├── vagas/
@@ -224,11 +297,16 @@ lib/
 ├── api.ts                         a única porta para o JSON e para o banco
 ├── prisma.ts                      o cliente único
 ├── esquemas.ts                    os esquemas do Zod
-└── formulario.ts                  porCampo e valoresDe
+├── formulario.ts                  porCampo e valoresDe
+├── sessao.ts                      usuarioAtual()
+└── permissoes.ts                  quem pode o quê
 prisma/
 ├── schema.prisma                  o banco inteiro
-└── migrations/                    uma por aula — vai para o Git
-DADOS.md                           as decisões de dados, por escrito
+├── migrations/                    uma por aula — vai para o Git
+└── seed.mjs                       as pessoas de laboratório
+auth.ts                            o Auth.js
+proxy.ts                           o atalho para /entrar
+DADOS.md · PERMISSOES.md           as decisões de equipe, por escrito
 ```
 
 ## Licença

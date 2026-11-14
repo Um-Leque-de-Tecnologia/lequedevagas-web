@@ -5,5 +5,9 @@ import { defineConfig } from "prisma/config";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
-  migrations: { path: "prisma/migrations" },
+  migrations: {
+    path: "prisma/migrations",
+    // aula 07 · LAB 2: `npx prisma db seed` roda isto.
+    seed: "node prisma/seed.mjs",
+  },
 });

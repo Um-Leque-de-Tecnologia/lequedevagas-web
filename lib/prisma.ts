@@ -10,7 +10,8 @@ import { PrismaClient } from "@prisma/client";
  *
  * Em produção não há reload, então a instância única basta.
  *
- * Um arquivo só importa isto: o lib/api.ts. Página nenhuma fala com o banco.
+ * Só dois arquivos importam isto: o lib/api.ts e o lib/sessao.ts (mais o
+ * auth.ts, que confere a senha). Página nenhuma fala com o banco.
  */
 const global_ = globalThis as unknown as { prisma?: PrismaClient };
 

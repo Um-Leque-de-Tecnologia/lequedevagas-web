@@ -6,9 +6,13 @@ export default function Privacidade() {
       <p>Texto de exemplo do projeto da disciplina.</p>
       <p>
         Desde a aula 06, o que você escreve no site fica guardado num banco de
-        dados: as candidaturas que você envia (nome, e-mail e habilidades), as
-        vagas que você publica e os perfis de empresa que você edita. Nenhum
-        dado é vendido nem enviado para outro lugar.
+        dados: a sua conta (nome, e-mail e a senha cifrada — nunca a senha em
+        si), as candidaturas que você envia e as vagas que você publica.
+      </p>
+      <p>
+        O login usa um cookie cifrado, que o JavaScript da página não consegue
+        ler. Ele guarda só quem você é; o resto é consultado no banco a cada
+        pedido. Nenhum dado é vendido nem enviado para outro lugar.
       </p>
     </>
   );

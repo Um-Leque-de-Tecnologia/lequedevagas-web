@@ -4,17 +4,16 @@ import { useActionState } from "react"; // REACT (era react-dom antes do 19)
 import { criarVaga } from "./acoes";
 import BotaoDeEnviar from "@/components/BotaoDeEnviar";
 import { ESTADO_INICIAL } from "@/lib/tipos";
-import type { Empresa } from "@/lib/tipos";
 
 /**
  * Os campos são NÃO CONTROLADOS: `defaultValue`, e não `value` — com Server
- * Actions é o <form> que sabe o que tem dentro dele. `value` sem `onChange`
- * trava o campo. O defaultValue vem do estado, para uma recusa devolver o
- * que a pessoa tinha digitado.
+ * Actions é o <form> que sabe o que tem dentro dele. O defaultValue vem do
+ * estado, para uma recusa devolver o que a pessoa tinha digitado.
+ *
+ * Aula 07: o <select> de empresa saiu. Por qual empresa se publica vem da
+ * sessão, e um campo "só para mostrar" convidaria alguém a achar que manda.
  */
-export default function FormularioDeVaga({ empresas }: { empresas: Empresa[] }) {
-  // estado     → o que a ação devolveu (erros, valores, mensagem)
-  // acaoDoForm → é ISTO que vai no action=, e não a criarVaga
+export default function FormularioDeVaga() {
   const [estado, acaoDoForm] = useActionState(criarVaga, ESTADO_INICIAL);
   const { valores, erros } = estado;
 
@@ -26,22 +25,6 @@ export default function FormularioDeVaga({ empresas }: { empresas: Empresa[] }) 
         <input name="titulo" defaultValue={valores.titulo} />
       </label>
       {erros.titulo && <p className="erro">{erros.titulo}</p>}
-
-      <label>
-        Empresa
-        {/* <select>, e não campo de texto: assim ninguém digita um slug que
-            não existe. A checagem do passo 2 da ação continua necessária —
-            mas agora ela é a rede, não a porta. */}
-        <select name="empresaSlug" defaultValue={valores.empresaSlug ?? ""}>
-          <option value="">Escolha…</option>
-          {empresas.map((e) => (
-            <option key={e.slug} value={e.slug}>
-              {e.nome}
-            </option>
-          ))}
-        </select>
-      </label>
-      {erros.empresaSlug && <p className="erro">{erros.empresaSlug}</p>}
 
       <label>
         Área
@@ -77,6 +60,12 @@ export default function FormularioDeVaga({ empresas }: { empresas: Empresa[] }) 
       </label>
 
       <BotaoDeEnviar>Publicar vaga</BotaoDeEnviar>
+      {/* A recusa que não é de campo nenhum — "você não pode publicar". */}
+      {estado.mensagem && (
+        <p role="alert" className="erro">
+          {estado.mensagem}
+        </p>
+      )}
     </form>
   );
 }
