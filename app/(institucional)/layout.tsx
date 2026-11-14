@@ -5,5 +5,6 @@ export default function LayoutInstitucional({
 }: {
   children: React.ReactNode;
 }) {
-  return <article className="texto-legal">{children}</article>;
+  // 60 caracteres por linha: o texto longo fica fácil de ler.
+  return <article className="max-w-[60ch]">{children}</article>;
 }

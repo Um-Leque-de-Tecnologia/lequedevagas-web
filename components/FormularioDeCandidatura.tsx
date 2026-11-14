@@ -1,119 +1,85 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useId } from "react";
+import { enviarCandidatura } from "@/app/vagas/[id]/acoes";
+import BotaoDeEnviar from "@/components/BotaoDeEnviar";
+import { ESTADO_INICIAL } from "@/lib/tipos";
+import type { Vaga } from "@/lib/tipos";
 
-export default function FormularioDeCandidatura({
-  tituloDaVaga,
-}: {
-  tituloDaVaga: string;
-}) {
-  // Cinco memórias. Cada uma guarda uma coisa que o servidor não tem como
-  // saber: o que a pessoa digitou nesta aba, agora.
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [rascunho, setRascunho] = useState("");
-  const [habilidades, setHabilidades] = useState<string[]>([]);
-  const [enviada, setEnviada] = useState(false);
+const HABILIDADES = ["HTML", "CSS", "JavaScript", "React", "SQL"];
 
-  // Estado derivado — nada disto vira useState.
-  // "O botão está habilitado?" é uma conta, não uma lembrança.
-  const emailParece = email.includes("@") && email.includes(".");
-  const podeEnviar = nome.trim() !== "" && emailParece && habilidades.length > 0;
+/**
+ * A candidatura, depois de quatro aulas:
+ *
+ * - aula 03: useState em tudo, e o dado morria nesta aba;
+ * - aula 05: `action` em vez de `onSubmit` — o dado vai para o servidor, e o
+ *   formulário funciona até com o JavaScript desligado;
+ * - aula 07: nome e e-mail saíram — vêm da CONTA de quem está na sessão;
+ * - aula 08: o fieldset, a legend e o erro ligado ao GRUPO.
+ */
+export default function FormularioDeCandidatura({ vaga }: { vaga: Vaga }) {
+  const [estado, acaoDoForm] = useActionState(enviarCandidatura, ESTADO_INICIAL);
+  const idDoErro = useId();
 
-  function adicionar() {
-    const nova = rascunho.trim();
-    // vazio ou repetido: não faz nada, e não some com o que a pessoa digitou
-    if (nova === "" || habilidades.includes(nova)) return;
-    setHabilidades([...habilidades, nova]); // lista NOVA, não push
-    setRascunho("");
-  }
-
-  // Duas telas no mesmo arquivo. O "enviada" decide qual delas aparece.
-  if (enviada) {
+  // A tela de sucesso da aula 03 continua existindo. O que mudou é quem a
+  // liga: era um useState local, agora é o `ok` que veio do servidor.
+  if (estado.ok) {
     return (
-      <div className="ok">
-        <h3>Candidatura registrada ✓</h3>
-        <p>
-          {nome}, guardamos a sua candidatura para{" "}
-          <strong>{tituloDaVaga}</strong> com {habilidades.length}{" "}
-          habilidade(s).
-        </p>
-        {/* Voltar é desligar este estado: os outros quatro continuam lá. */}
-        <button type="button" onClick={() => setEnviada(false)}>
-          corrigir alguma coisa
-        </button>
+      // role="status": quem não está olhando a tela ouve que deu certo.
+      <div role="status" className="rounded-xl border border-sucesso bg-sucesso-fundo p-4 text-sucesso">
+        <h3 className="m-0 font-semibold">Candidatura enviada</h3>
+        <p className="mb-0">A {vaga.empresa} vai receber o seu contato.</p>
       </div>
     );
   }
 
   return (
-    <form
-      className="formulario"
-      onSubmit={(e) => {
-        // sem isto o navegador recarrega a página e apaga tudo
-        e.preventDefault();
-        setEnviada(true);
-      }}
-    >
-      <label>
-        Nome
-        {/* value + onChange andam JUNTOS. Só o value prende o campo. */}
-        <input value={nome} onChange={(e) => setNome(e.target.value)} />
-      </label>
+    // noValidate: quem valida é a ação, em português e ligada ao campo.
+    <form action={acaoDoForm} className="grid max-w-xl gap-4" noValidate>
+      {/* Campo escondido: a ação precisa saber de QUAL vaga é. Trocá-lo só
+          faz a pessoa se candidatar a outra vaga pública — coisa que ela já
+          podia fazer clicando. QUEM se candidata vem da sessão, nunca daqui. */}
+      <input type="hidden" name="vagaId" value={vaga.id} />
+      <p className="m-0 text-sm text-suave">
+        Você se candidata com o nome e o e-mail da sua conta.
+      </p>
 
-      <label>
-        E-mail
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-      </label>
-      {/* o aviso só aparece depois que a pessoa começou a digitar */}
-      {email !== "" && !emailParece && (
-        <p className="erro">Isso não parece um e-mail.</p>
+      {/* O <fieldset> junta os cinco checkboxes, e a <legend> dá o nome do
+          grupo: o leitor de tela diz "Habilidades, grupo" ao entrar. O erro é
+          do GRUPO, não de um checkbox — por isso o aria-describedby mora aqui.
+          Vários checkboxes com o MESMO name: do outro lado, getAll(). */}
+      <fieldset
+        aria-describedby={estado.erros.habilidades ? idDoErro : undefined}
+        className="grid gap-2 rounded-xl border border-borda p-4"
+      >
+        <legend className="px-1 font-medium">Habilidades</legend>
+        {HABILIDADES.map((h) => (
+          <label key={h} className="flex w-fit items-center gap-2">
+            <input
+              type="checkbox"
+              name="habilidades"
+              value={h}
+              defaultChecked={estado.valores.habilidades?.split(",").includes(h)}
+              className="size-4 accent-principal"
+            />
+            {h}
+          </label>
+        ))}
+      </fieldset>
+      {estado.erros.habilidades && (
+        <p id={idDoErro} className="m-0 text-sm text-erro">
+          {estado.erros.habilidades}
+        </p>
       )}
 
-      <label>
-        Habilidades
-        <input
-          value={rascunho}
-          onChange={(e) => setRascunho(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              // dentro de um form, Enter envia. Aqui ele adiciona.
-              e.preventDefault();
-              adicionar();
-            }
-          }}
-        />
-      </label>
-      <button type="button" onClick={adicionar}>
-        adicionar
-      </button>
-
-      <ul className="chips">
-        {habilidades.map((h) => (
-          <li key={h}>
-            {h}
-            <button
-              type="button"
-              aria-label={`remover ${h}`}
-              // filter também devolve lista NOVA. É o mesmo princípio.
-              onClick={() =>
-                setHabilidades(habilidades.filter((x) => x !== h))
-              }
-            >
-              ×
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      {/* disabled sai de podeEnviar, que é conta. Não há useState de botão. */}
-      <button type="submit" disabled={!podeEnviar}>
-        Enviar candidatura
-      </button>
+      <div>
+        <BotaoDeEnviar>Enviar candidatura</BotaoDeEnviar>
+      </div>
+      {estado.mensagem && (
+        <p role="alert" className="m-0 text-sm text-erro">
+          {estado.mensagem}
+        </p>
+      )}
     </form>
   );
 }

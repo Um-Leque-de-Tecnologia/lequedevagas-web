@@ -1,4 +1,8 @@
 // SEM "use client". É uma página de servidor, e continua sendo.
+//
+// Aula 07: o link "editar perfil" NÃO mora aqui. Esta página é ●, igual para
+// todo mundo: para mostrar o link só a quem fala pela empresa, ela teria de
+// ler a sessão e virar ƒ. O link foi para o /painel — e a tranca é a ação.
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { listarEmpresas, buscarEmpresa, listarVagas } from "@/lib/api";

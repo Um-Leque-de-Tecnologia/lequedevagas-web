@@ -15,16 +15,19 @@ export default function Sobre() {
         ensinado, e nada além dele.
       </p>
       <p>
-        Os dados saíram de dentro do código na aula 04: hoje eles são{" "}
+        As vagas e as empresas publicadas pelo time moram em{" "}
         <code>dados/vagas.json</code> e <code>dados/empresas.json</code>,
-        buscados por rede. Um único arquivo conhece esse endereço,{" "}
-        <code>lib/api.ts</code> — nenhuma página escreve <code>fetch</code>.
+        buscados por rede desde a aula 04. O que se escreve pelo site — vagas
+        novas, perfis editados, candidaturas, contas — mora num banco de dados
+        desde a aula 06. Um único arquivo conhece as duas fontes,{" "}
+        <code>lib/api.ts</code>: nenhuma página escreve <code>fetch</code> nem
+        fala com o banco.
       </p>
       <p>
-        Foi essa troca que trouxe a <strong>espera</strong> para o projeto, e
-        com ela os esqueletos de carregamento, o <code>Suspense</code> em volta
-        dos blocos que buscam, e a diferença entre uma vaga que não existe e
-        uma rede que caiu.
+        Toda escrita é uma Server Action que valida com Zod (aula 05) e
+        pergunta quem está chamando antes de fazer qualquer coisa (aula 07). E
+        o estilo mora junto de cada componente, com cores de nome de função que
+        valem nos temas claro e escuro (aula 08).
       </p>
     </section>
   );

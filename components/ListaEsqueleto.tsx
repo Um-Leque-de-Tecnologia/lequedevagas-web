@@ -1,12 +1,11 @@
-// O segundo fallback. Mesma regra do irmão: altura parecida com a da lista
-// real, para a página não pular quando os cartões chegarem. Três cartões
-// bastam — ninguém olha o esqueleto tempo suficiente para contar.
+// Mesma altura dos cartões de verdade, para a página não pular quando eles
+// chegarem. O pulso só anima para quem não pediu menos movimento.
 export default function ListaEsqueleto() {
   return (
-    <div className="lista esqueleto" aria-hidden="true">
-      <div className="cartao-esqueleto" />
-      <div className="cartao-esqueleto" />
-      <div className="cartao-esqueleto" />
+    <div className="grid gap-3 sm:grid-cols-2" aria-hidden="true">
+      <div className="h-19 rounded-xl bg-superficie motion-safe:animate-pulse" />
+      <div className="h-19 rounded-xl bg-superficie motion-safe:animate-pulse" />
+      <div className="h-19 rounded-xl bg-superficie motion-safe:animate-pulse" />
     </div>
   );
 }

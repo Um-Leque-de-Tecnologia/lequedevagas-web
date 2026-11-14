@@ -18,7 +18,8 @@ export default function Filtros({
   // Nenhum useState aqui. Este componente não lembra de nada: ele mostra o
   // que recebe e avisa quando alguém mexe.
   return (
-    <div className="filtros">
+    <div className="my-4 grid gap-3">
+      {/* O rótulo continua, escondido: o sr-only agora é do Tailwind. */}
       <label className="sr-only" htmlFor="busca">
         Buscar vaga
       </label>
@@ -29,15 +30,21 @@ export default function Filtros({
         value={busca}
         // sem este onChange o campo não deixa digitar
         onChange={(e) => aoMudarBusca(e.target.value)}
+        className="rounded-lg border border-borda-campo bg-superficie px-3 py-2.5"
       />
 
-      <div className="chips">
+      {/* role="group" com nome: o leitor de tela diz "Filtrar por área,
+          grupo" ao chegar nos chips — e não sete botões soltos. */}
+      <div role="group" aria-label="Filtrar por área" className="flex flex-wrap gap-2">
         {areas.map((nome) => (
           <button
             key={nome}
             type="button"
-            className={nome === area ? "chip ativo" : "chip"}
+            // Botão que liga e desliga é aria-pressed. O leitor de tela diz
+            // "pressionado" no ligado — e o estilo sai do MESMO atributo.
+            aria-pressed={nome === area}
             onClick={() => aoMudarArea(nome)}
+            className="rounded-full border border-borda px-3 py-1.5 text-suave aria-pressed:border-principal aria-pressed:font-semibold aria-pressed:text-principal"
           >
             {nome}
           </button>
