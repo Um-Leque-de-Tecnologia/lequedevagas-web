@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { entrar } from "./acoes";
 import BotaoDeEnviar from "@/components/BotaoDeEnviar";
+import Campo from "@/components/ui/Campo";
 import { ESTADO_INICIAL } from "@/lib/tipos";
 
 export default function FormularioDeEntrada() {
@@ -10,25 +11,29 @@ export default function FormularioDeEntrada() {
   const { valores, erros } = estado;
 
   return (
-    <form action={acaoDoForm} className="formulario" noValidate>
-      {/* O autoComplete diz ao navegador O QUE é cada campo: o gerenciador
-          de senha preenche os dois de uma vez. */}
-      <label>
-        E-mail
-        <input name="email" type="email" autoComplete="username" defaultValue={valores.email} />
-      </label>
-      {erros.email && <p className="erro">{erros.email}</p>}
-
-      {/* A senha NUNCA volta preenchida: ela não está no `valores`. */}
-      <label>
-        Senha
-        <input name="senha" type="password" autoComplete="current-password" />
-      </label>
-      {erros.senha && <p className="erro">{erros.senha}</p>}
-
-      <BotaoDeEnviar enviando="Entrando…">Entrar</BotaoDeEnviar>
+    <form action={acaoDoForm} className="grid max-w-sm gap-4" noValidate>
+      {/* O Campo liga rótulo, entrada e erro (aula 08): o leitor de tela diz
+          "inválido" e lê a frase do erro logo depois do nome do campo. */}
+      <Campo
+        rotulo="E-mail"
+        name="email"
+        type="email"
+        autoComplete="username"
+        defaultValue={valores.email}
+        erro={erros.email}
+      />
+      <Campo
+        rotulo="Senha"
+        name="senha"
+        type="password"
+        autoComplete="current-password"
+        erro={erros.senha}
+      />
+      <div>
+        <BotaoDeEnviar enviando="Entrando…">Entrar</BotaoDeEnviar>
+      </div>
       {estado.mensagem && (
-        <p role="alert" className="erro">
+        <p role="alert" className="m-0 text-sm text-erro">
           {estado.mensagem}
         </p>
       )}

@@ -20,7 +20,7 @@ export default async function Empresas() {
     <section>
       <h1>Empresas</h1>
 
-      <ul className="lista">
+      <ul className="grid gap-3">
         {empresas.map((empresa) => {
           /* A contagem é conta, feita no servidor, e não um campo do JSON:
              número guardado desencontra do array na primeira vaga nova. */
@@ -29,10 +29,14 @@ export default async function Empresas() {
           ).length;
 
           return (
-            <li key={empresa.slug}>
-              <Link href={`/empresas/${empresa.slug}`}>
-                {empresa.nome}
-                <span>
+            <li
+              key={empresa.slug}
+              className="rounded-xl border border-borda transition-colors hover:border-borda-campo"
+            >
+              <Link href={`/empresas/${empresa.slug}`} className="block px-4 py-3.5 no-underline">
+                <span className="font-semibold">{empresa.nome}</span>
+                {/* A linha de baixo era #a1a1aa: 2,56 : 1 no claro. */}
+                <span className="block text-sm text-suave">
                   {quantas === 1 ? "1 vaga aberta" : `${quantas} vagas abertas`}
                 </span>
               </Link>

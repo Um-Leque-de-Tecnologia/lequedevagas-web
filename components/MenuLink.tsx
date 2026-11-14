@@ -17,9 +17,11 @@ export default function MenuLink({
   return (
     <Link
       href={href}
-      className={ativo ? "menu-link ativo" : "menu-link"}
-      // aria-current avisa o leitor de tela qual é a página atual
+      // aria-current avisa o leitor de tela qual é a página atual.
       aria-current={ativo ? "page" : undefined}
+      // Uma classe só, sem ternário: quem acende o link é o aria-current.
+      // O que o leitor de tela ouve e o que o olho vê não têm como discordar.
+      className="text-suave no-underline hover:text-principal aria-[current=page]:font-semibold aria-[current=page]:text-principal"
     >
       {children}
     </Link>

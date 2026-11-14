@@ -3,6 +3,8 @@
 import { useActionState } from "react";
 import { salvarEmpresa } from "./acoes";
 import BotaoDeEnviar from "@/components/BotaoDeEnviar";
+import Campo from "@/components/ui/Campo";
+import AreaDeTexto from "@/components/ui/AreaDeTexto";
 import { ESTADO_INICIAL } from "@/lib/tipos";
 import type { Empresa } from "@/lib/tipos";
 
@@ -14,34 +16,31 @@ export default function FormularioDaEmpresa({ empresa }: { empresa: Empresa }) {
   const { valores, erros } = estado;
 
   return (
-    <form action={acaoDoForm} className="formulario" noValidate>
+    <form action={acaoDoForm} className="grid max-w-xl gap-4" noValidate>
       {/* O ?? garante que o primeiro carregamento mostre o valor atual, e
           uma recusa devolva o que a pessoa tinha acabado de digitar. O slug
           não aparece: ele não é editável. */}
-      <label>
-        Nome
-        <input name="nome" defaultValue={valores.nome ?? empresa.nome} />
-      </label>
-      {erros.nome && <p className="erro">{erros.nome}</p>}
-
-      <label>
-        Sobre
-        <textarea name="sobre" rows={6} defaultValue={valores.sobre ?? empresa.sobre} />
-      </label>
-      {erros.sobre && <p className="erro">{erros.sobre}</p>}
-
-      <label>
-        Site
-        <input name="site" type="url" defaultValue={valores.site ?? empresa.site} />
-      </label>
-      {erros.site && <p className="erro">{erros.site}</p>}
-
-      <BotaoDeEnviar enviando="Salvando…">Salvar</BotaoDeEnviar>
-
-      {/* O recado geral. role="status" faz o leitor de tela anunciar a
-          mudança — quem não está olhando a tela precisa saber que salvou. */}
+      <Campo rotulo="Nome" name="nome" defaultValue={valores.nome ?? empresa.nome} erro={erros.nome} />
+      <AreaDeTexto
+        rotulo="Sobre"
+        name="sobre"
+        defaultValue={valores.sobre ?? empresa.sobre}
+        erro={erros.sobre}
+      />
+      <Campo
+        rotulo="Site"
+        name="site"
+        type="url"
+        defaultValue={valores.site ?? empresa.site}
+        erro={erros.site}
+      />
+      <div>
+        <BotaoDeEnviar enviando="Salvando…">Salvar</BotaoDeEnviar>
+      </div>
+      {/* O recado geral. Salvou: verde e role="status" — quem não está
+          olhando a tela precisa saber que salvou. Recusou: vermelho. */}
       {estado.mensagem && (
-        <p role="status" className={estado.ok ? "salvo" : "erro"}>
+        <p role="status" className={`m-0 text-sm ${estado.ok ? "text-sucesso" : "text-erro"}`}>
           {estado.mensagem}
         </p>
       )}

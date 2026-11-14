@@ -4,8 +4,8 @@
  *
  * Este arquivo não sabe de onde a vaga vem — e é por isso que ele continua
  * valendo quando a fonte troca. Foi o que os arrays de `data/*.ts` viraram
- * na aula 04. Na aula 05 ele ganhou o Estado, que toda ação devolve, e a
- * Candidatura, que pela primeira vez sai do navegador.
+ * na aula 04, e o que sobreviveu à entrada do banco na aula 06: os types
+ * daqui continuam escritos à mão, e o banco se adapta a eles (DADOS.md).
  */
 
 export type Vaga = {

@@ -9,6 +9,10 @@ import { arquivar } from "@/app/vagas/acoes";
 
 export const metadata: Metadata = { title: "Minha área · Leque de Vagas" };
 
+// O mesmo desenho do CardDeVaga: quem já viu o mural reconhece.
+const CARTAO = "rounded-xl border border-borda transition-colors hover:border-borda-campo";
+const LINK_DO_CARTAO = "block px-4 py-3.5 no-underline";
+
 /**
  * A página que é de uma pessoa só — a única do site que lê a sessão para
  * DESENHAR. Ela é ƒ, e isso não custa nada às outras (aula 07, LAB 3).
@@ -28,8 +32,12 @@ export default async function Painel() {
       ) : (
         <PainelDaCandidata quem={quem} />
       )}
-      <form action={sair} className="sair">
-        <BotaoDeEnviar enviando="Saindo…">Sair</BotaoDeEnviar>
+      {/* Secundário: botão primário é um por tela, e aqui quem manda é o
+          conteúdo. */}
+      <form action={sair} className="mt-8">
+        <BotaoDeEnviar variante="secundario" enviando="Saindo…">
+          Sair
+        </BotaoDeEnviar>
       </form>
     </section>
   );
@@ -44,11 +52,15 @@ async function PainelDaEmpresa({ quem }: { quem: Quem }) {
 
   return (
     <>
-      <p className="numeros">
+      <p className="text-sm text-suave">
         Você publica pela {empresa?.nome ?? quem.empresaSlug} ·{" "}
-        <Link href={`/empresas/${quem.empresaSlug}/editar`}>editar o perfil</Link>
+        <Link href={`/empresas/${quem.empresaSlug}/editar`} className="text-principal">
+          editar o perfil
+        </Link>
         {" · "}
-        <Link href="/vagas/nova">publicar uma vaga</Link>
+        <Link href="/vagas/nova" className="text-principal">
+          publicar uma vaga
+        </Link>
       </p>
 
       <h2>Suas vagas</h2>
@@ -57,13 +69,16 @@ async function PainelDaEmpresa({ quem }: { quem: Quem }) {
           Nenhuma vaga publicada por você. <Link href="/vagas/nova">Publicar a primeira</Link>
         </p>
       ) : (
-        <ul className="lista">
+        <ul className="grid gap-3">
           {vagas.map((vaga) => (
-            <li key={vaga.id}>
-              <Link href={`/vagas/${vaga.id}`}>
-                {vaga.titulo}
+            <li
+              key={vaga.id}
+              className={`${CARTAO} flex flex-wrap items-center justify-between gap-2 pr-4`}
+            >
+              <Link href={`/vagas/${vaga.id}`} className={LINK_DO_CARTAO}>
+                <span className="font-semibold">{vaga.titulo}</span>
                 {/* Plural é conta, como o número do mural. */}
-                <span>
+                <span className="block text-sm text-suave">
                   {vaga._count.candidaturas === 1
                     ? "1 candidatura"
                     : `${vaga._count.candidaturas} candidaturas`}
@@ -73,9 +88,11 @@ async function PainelDaEmpresa({ quem }: { quem: Quem }) {
               {/* Frente 4 · o botão mora AQUI, e não no mural: o mural é
                   igual para todo mundo (○), e o botão é de uma pessoa só. O
                   id vai escondido — ele diz QUAL vaga, nunca SE pode. */}
-              <form action={arquivar} className="arquivar">
+              <form action={arquivar} className="pb-3.5 pl-4 sm:pb-0 sm:pl-0">
                 <input type="hidden" name="id" value={vaga.id} />
-                <BotaoDeEnviar enviando="Arquivando…">Arquivar</BotaoDeEnviar>
+                <BotaoDeEnviar variante="perigo" enviando="Arquivando…">
+                  Arquivar
+                </BotaoDeEnviar>
               </form>
             </li>
           ))}
@@ -97,12 +114,12 @@ async function PainelDaCandidata({ quem }: { quem: Quem }) {
           Nenhuma ainda. <Link href="/vagas">Ver as vagas</Link>
         </p>
       ) : (
-        <ul className="lista">
+        <ul className="grid gap-3">
           {candidaturas.map((c) => (
-            <li key={c.id}>
-              <Link href={`/vagas/${c.vaga.id}`}>
-                {c.vaga.titulo}
-                <span>
+            <li key={c.id} className={CARTAO}>
+              <Link href={`/vagas/${c.vaga.id}`} className={LINK_DO_CARTAO}>
+                <span className="font-semibold">{c.vaga.titulo}</span>
+                <span className="block text-sm text-suave">
                   {c.vaga.empresa} · enviada em {c.criadaEm.toLocaleDateString("pt-BR")}
                 </span>
               </Link>

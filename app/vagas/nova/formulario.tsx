@@ -3,6 +3,8 @@
 import { useActionState } from "react"; // REACT (era react-dom antes do 19)
 import { criarVaga } from "./acoes";
 import BotaoDeEnviar from "@/components/BotaoDeEnviar";
+import Campo from "@/components/ui/Campo";
+import AreaDeTexto from "@/components/ui/AreaDeTexto";
 import { ESTADO_INICIAL } from "@/lib/tipos";
 
 /**
@@ -18,51 +20,40 @@ export default function FormularioDeVaga() {
   const { valores, erros } = estado;
 
   return (
-    // noValidate: quem valida é a ação, em português e embaixo do campo.
-    <form action={acaoDoForm} className="formulario" noValidate>
-      <label>
-        Título
-        <input name="titulo" defaultValue={valores.titulo} />
-      </label>
-      {erros.titulo && <p className="erro">{erros.titulo}</p>}
-
-      <label>
-        Área
-        <input name="area" defaultValue={valores.area} />
-      </label>
-      {erros.area && <p className="erro">{erros.area}</p>}
-
-      <label>
-        Senioridade
-        <input name="senioridade" defaultValue={valores.senioridade} />
-      </label>
-      {erros.senioridade && <p className="erro">{erros.senioridade}</p>}
-
-      <label>
-        Local
-        <input name="local" defaultValue={valores.local} />
-      </label>
-      {erros.local && <p className="erro">{erros.local}</p>}
-
-      <label>
-        Descrição
-        <textarea name="descricao" rows={6} defaultValue={valores.descricao} />
-      </label>
-      {erros.descricao && <p className="erro">{erros.descricao}</p>}
-
-      <label className="caixa">
+    // noValidate: quem valida é a ação. Sem ele, o navegador mostra o balão
+    // dele, em outra língua e sem o aria-describedby.
+    <form action={acaoDoForm} className="grid max-w-xl gap-4" noValidate>
+      <Campo rotulo="Título" name="titulo" defaultValue={valores.titulo} erro={erros.titulo} />
+      <Campo rotulo="Área" name="area" defaultValue={valores.area} erro={erros.area} />
+      <Campo
+        rotulo="Senioridade"
+        name="senioridade"
+        defaultValue={valores.senioridade}
+        erro={erros.senioridade}
+      />
+      <Campo rotulo="Local" name="local" defaultValue={valores.local} erro={erros.local} />
+      <AreaDeTexto
+        rotulo="Descrição"
+        name="descricao"
+        defaultValue={valores.descricao}
+        erro={erros.descricao}
+      />
+      {/* O <label> em volta do checkbox: clicar no texto marca a caixa. */}
+      <label className="flex w-fit items-center gap-2">
         <input
           type="checkbox"
           name="aceitaIniciante"
           defaultChecked={valores.aceitaIniciante === "on"}
+          className="size-4 accent-principal"
         />
         Aceita quem está começando
       </label>
-
-      <BotaoDeEnviar>Publicar vaga</BotaoDeEnviar>
+      <div>
+        <BotaoDeEnviar>Publicar vaga</BotaoDeEnviar>
+      </div>
       {/* A recusa que não é de campo nenhum — "você não pode publicar". */}
       {estado.mensagem && (
-        <p role="alert" className="erro">
+        <p role="alert" className="m-0 text-sm text-erro">
           {estado.mensagem}
         </p>
       )}

@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { listarVagas, buscarVaga, buscarVagaNoBanco } from "@/lib/api";
+import { buscarVaga, buscarVagaNoBanco, listarVagas } from "@/lib/api";
 import BotaoCopiarLink from "@/components/BotaoCopiarLink";
 import DescricaoDaVaga from "@/components/DescricaoDaVaga";
 import FormularioDeCandidatura from "@/components/FormularioDeCandidatura";
@@ -11,13 +11,10 @@ import FormularioDeCandidatura from "@/components/FormularioDeCandidatura";
 type Props = { params: Promise<{ id: string }> };
 
 /* ─── A LISTA DO QUE PRÉ-GERAR ─────────────────────────────────────────────
-   O Next não tem como adivinhar QUAIS ids existem: a pasta [id] atende
-   infinitos endereços. Esta função conta, e roda UMA vez, no build.
-
-   A chave tem que se chamar `id`, igual ao nome da pasta. Nome errado não dá
-   erro: simplesmente não gera nada, em silêncio. E o valor tem que ser TEXTO,
-   porque endereço é texto — daí o String(), mesmo o id já sendo string: se um
-   dia o JSON vier com número, aqui não quebra. */
+   O Next não tem como adivinhar QUAIS ids existem: esta função conta, e roda
+   UMA vez, no build. A chave tem que se chamar `id`, igual ao nome da pasta,
+   e o valor tem que ser TEXTO. Vaga publicada depois do build é gerada na
+   primeira visita, e guardada. */
 export async function generateStaticParams() {
   const vagas = await listarVagas();
   return vagas.map((vaga) => ({ id: String(vaga.id) }));
@@ -27,8 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const vaga = await buscarVaga(id);
 
-  /* Aqui NÃO se chama notFound(): quem decide isso é a página. Esta função só
-     precisa devolver um título que não minta. */
+  // Aqui NÃO se chama notFound(): quem decide isso é a página.
   if (!vaga) return { title: "Vaga não encontrada · Leque de Vagas" };
 
   return {
@@ -38,36 +34,39 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PaginaDaVaga({ params }: Props) {
-  // await troca o "vale" pelo valor
   const { id } = await params;
   const [vaga, noBanco] = await Promise.all([buscarVaga(id), buscarVagaNoBanco(id)]);
+
+  /* O id que não existe — ou que foi arquivado. notFound() interrompe a
+     renderização e entrega o not-found.tsx desta pasta. */
+  if (!vaga) notFound();
 
   /* Repare no que esta página NÃO faz: ler a sessão. Ela é igual para todo
      mundo e continua pré-gerada (●). Quem pergunta "quem é você?" é a ação
      da candidatura, a cada envio (aula 07). */
-
-  /* O id que não existe — ou que foi arquivado. notFound() não devolve nada — ele interrompe a
-     renderização e entrega o not-found.tsx desta pasta, escrito na aula 02,
-     que só agora tem quem o chame. */
-  if (!vaga) notFound();
+  const candidaturas = noBanco?._count.candidaturas ?? 0;
 
   return (
-    <article className="vaga">
+    <article>
       {/* Título e ficha vêm prontos do servidor. Não mudam depois. */}
       <h1>{vaga.titulo}</h1>
-      <p>
-        <Link href={`/empresas/${vaga.empresaSlug}`}>{vaga.empresa}</Link>
+      <p className="text-suave">
+        <Link href={`/empresas/${vaga.empresaSlug}`} className="text-principal">
+          {vaga.empresa}
+        </Link>
         {" · "}
         {vaga.area} · {vaga.senioridade} · {vaga.local}
       </p>
 
+      {/* Os mesmos tokens do selo do CardDeVaga: verde é "sucesso". */}
       {vaga.aceitaIniciante && (
-        <p className="selo">Aceita quem está começando</p>
+        <p className="w-fit rounded-full bg-sucesso-fundo px-3 py-1 text-sm font-medium text-sucesso">
+          Aceita quem está começando
+        </p>
       )}
 
-      {/* Daqui para baixo, componentes de cliente lado a lado. Cada um tem a
-          própria memória, nenhum sabe do outro, e todos continuam iguais ao
-          que eram na aula 03: só a origem do dado mudou. */}
+      {/* Componentes de cliente lado a lado. Cada um tem a própria memória,
+          e nenhum sabe do outro. */}
       <BotaoCopiarLink titulo={vaga.titulo} />
       <DescricaoDaVaga texto={vaga.descricao} />
 
@@ -75,10 +74,10 @@ export default async function PaginaDaVaga({ params }: Props) {
       {noBanco ? (
         <>
           {/* Contado pelo banco (aula 06): o número, e não as linhas. */}
-          <p className="numeros">
-            {noBanco._count.candidaturas === 1
+          <p className="text-sm text-suave">
+            {candidaturas === 1
               ? "1 candidatura pelo site até agora."
-              : `${noBanco._count.candidaturas} candidaturas pelo site até agora.`}{" "}
+              : `${candidaturas} candidaturas pelo site até agora.`}{" "}
             Para se candidatar, <Link href="/entrar">entre</Link> com uma conta de candidata
             — ou <Link href="/cadastro">crie a sua</Link>.
           </p>
@@ -86,8 +85,8 @@ export default async function PaginaDaVaga({ params }: Props) {
         </>
       ) : (
         /* Vaga do dados/vagas.json não está na tabela, e a candidatura é uma
-           relação com a tabela. Ver DADOS.md. */
-        <p>
+           relação com a tabela. Ver "Detalhes que costumam pegar" no README. */
+        <p className="text-suave">
           Esta vaga foi publicada pelo time do Leque de Vagas e ainda não recebe
           candidatura pelo site. Fale com a {vaga.empresa} pelo{" "}
           <Link href={`/empresas/${vaga.empresaSlug}`}>perfil da empresa</Link>.

@@ -1,17 +1,17 @@
-/* Este arquivo existe desde a aula 02 no nível de cima e quase nunca aparecia
-   — não havia o que esperar. Agora há uma rede no caminho, e ele tem trabalho.
+/* A REGRA continua a da aula 04: o esqueleto tem MAIS OU MENOS a altura do
+   conteúdo real — um "Carregando..." de uma linha no lugar de um bloco de
+   300px faz a página pular quando o dado chega. O que mudou na aula 08 é o
+   pulso: motion-safe: só anima para quem não pediu ao sistema menos movimento. */
+const BARRA = "rounded-md bg-superficie motion-safe:animate-pulse";
 
-   A REGRA: o esqueleto tem MAIS OU MENOS a altura do conteúdo real. Um
-   "Carregando..." de uma linha no lugar de um bloco de 300px faz a página
-   inteira pular quando o dado chega — e o dedo de quem já ia clicar acerta
-   outra coisa. */
 export default function Carregando() {
+  // Uma altura por elemento: a BARRA não tem altura, e cada barra diz a sua.
   return (
-    <div className="esqueleto" aria-busy="true">
-      <div className="barra titulo" />
-      <div className="barra" />
-      <div className="barra" />
-      <div className="barra curta" />
+    <div className="grid gap-2.5" aria-busy="true">
+      <div className={`${BARRA} h-7.5 max-w-[60%]`} />
+      <div className={`${BARRA} h-4`} />
+      <div className={`${BARRA} h-4`} />
+      <div className={`${BARRA} h-4 max-w-[35%]`} />
     </div>
   );
 }

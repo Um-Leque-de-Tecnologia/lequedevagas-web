@@ -3,16 +3,19 @@
 import { useState } from "react";
 import Filtros from "./Filtros";
 import CardDeVaga from "./CardDeVaga";
-import { Vaga } from "@/lib/tipos";
+import type { Vaga } from "@/lib/tipos";
 
+/**
+ * O mural é igual para todo mundo, e por isso a página dele é pré-gerada.
+ * As arquivadas já chegam fora da lista: quem as tira é a consulta, no
+ * lib/api.ts (aula 06) — componente só mostra.
+ */
 export default function MuralDeVagas({ vagas }: { vagas: Vaga[] }) {
-  // O estado mora AQUI, no pai comum dos filtros e da lista. Dois
-  // componentes precisam da busca: quem mora sozinho não serve.
+  // O estado mora AQUI, no pai comum dos filtros e da lista.
   const [busca, setBusca] = useState("");
   const [area, setArea] = useState("Todas");
 
   // Estado derivado: recalculado a cada renderização, nunca guardado.
-  // new Set tira os repetidos; o espalhamento devolve array de novo.
   const areas = ["Todas", ...new Set(vagas.map((v) => v.area))];
 
   const visiveis = vagas.filter((vaga) => {
@@ -25,7 +28,6 @@ export default function MuralDeVagas({ vagas }: { vagas: Vaga[] }) {
     return bateBusca && bateArea;
   });
 
-  // Mais uma conta. Muda sozinha quando visiveis muda.
   const aceitamIniciante = visiveis.filter((v) => v.aceitaIniciante).length;
 
   return (
@@ -39,16 +41,18 @@ export default function MuralDeVagas({ vagas }: { vagas: Vaga[] }) {
         areas={areas}
       />
 
-      <p className="numeros">
+      {/* aria-live="polite": quando um chip ou a busca muda a conta, o leitor
+          de tela lê a frase nova sozinho — sem tirar a pessoa de onde está. */}
+      <p className="text-sm text-suave" aria-live="polite">
         <strong>{visiveis.length}</strong> de {vagas.length} vagas ·{" "}
         <strong>{aceitamIniciante}</strong> aceitam quem está começando
       </p>
 
-      {/* A lista vazia é um estado da tela, não um esquecimento. */}
       {visiveis.length === 0 ? (
         <p>Nenhuma vaga com esse filtro. Tente outra palavra.</p>
       ) : (
-        <ul className="lista">
+        // Uma coluna em qualquer tela; duas a partir de 640px (sm:).
+        <ul className="grid gap-3 sm:grid-cols-2">
           {visiveis.map((vaga) => (
             <CardDeVaga key={vaga.id} vaga={vaga} />
           ))}

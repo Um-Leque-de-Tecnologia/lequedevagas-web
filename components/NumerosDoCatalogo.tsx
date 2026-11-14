@@ -13,9 +13,9 @@ export default async function NumerosDoCatalogo() {
   const { total, iniciantes } = await contarVagas();
 
   return (
-    <p className="numeros">
-      <strong>{total}</strong> vagas ·{" "}
-      <strong>{iniciantes}</strong> aceitam quem está começando
+    <p className="text-sm text-suave">
+      <strong>{total}</strong> vagas · <strong>{iniciantes}</strong> aceitam quem está
+      começando
     </p>
   );
 }

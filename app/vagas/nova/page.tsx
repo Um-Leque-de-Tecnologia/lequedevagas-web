@@ -35,8 +35,8 @@ export default async function PublicarVaga() {
   return (
     <section>
       <h1>Publicar uma vaga</h1>
-      <p className="numeros">
-        Publicando pela <strong>{empresa?.nome ?? quem.empresaSlug}</strong>.
+      <p className="text-suave">
+        Publicando pela <strong className="text-principal">{empresa?.nome ?? quem.empresaSlug}</strong>.
       </p>
       <FormularioDeVaga />
     </section>
