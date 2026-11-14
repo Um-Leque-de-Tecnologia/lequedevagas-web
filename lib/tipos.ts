@@ -1,10 +1,11 @@
 /**
- * Só os tipos. Nenhum dado.
+ * Os tipos do projeto — e uma constante, o ESTADO_INICIAL, que é o "tipo
+ * em forma de valor" de todo formulário.
  *
  * Este arquivo não sabe de onde a vaga vem — e é por isso que ele continua
- * valendo quando a fonte trocar de endereço. Foi o que os arrays de
- * `data/vagas.ts` e `data/empresas.ts` viraram na aula 04: os dados saíram
- * para `dados/*.json`, os tipos ficaram aqui, e nenhum array sobrou em `app/`.
+ * valendo quando a fonte troca. Foi o que os arrays de `data/*.ts` viraram
+ * na aula 04. Na aula 05 ele ganhou o Estado, que toda ação devolve, e a
+ * Candidatura, que pela primeira vez sai do navegador.
  */
 
 export type Vaga = {
@@ -12,7 +13,7 @@ export type Vaga = {
   id: string;
   titulo: string;
   empresa: string;
-  /** Tem que existir como `slug` em `dados/empresas.json`, escrito igualzinho. */
+  /** Tem que existir como `slug` de uma empresa, escrito igualzinho. */
   empresaSlug: string;
   /** Front-end · Back-end · Dados · Mobile · QA · Design */
   area: string;
@@ -21,7 +22,7 @@ export type Vaga = {
   /** Remoto · Híbrido · Presencial, com a cidade quando não é remoto. */
   local: string;
   aceitaIniciante: boolean;
-  /** No mínimo 300 caracteres: o "ver mais" precisa ter o que esconder. */
+  /** O "ver mais" precisa ter o que esconder: as do JSON passam de 300. */
   descricao: string;
 };
 
@@ -33,3 +34,33 @@ export type Empresa = {
   sobre: string;
   site: string;
 };
+
+/**
+ * Aula 05, frente 3. Ele não existia porque, até a aula 05, a candidatura
+ * nunca saía do navegador de quem preencheu.
+ */
+export type Candidatura = {
+  id: string;
+  vagaId: string;
+  nome: string;
+  email: string;
+  habilidades: string[];
+  enviadaEm: string;
+};
+
+/**
+ * O formato que TODA Server Action com formulário devolve (aula 05).
+ * Combinar isto antes de qualquer código é o que evita quatro formulários
+ * que se comportam de quatro jeitos diferentes na tela.
+ */
+export type Estado = {
+  ok: boolean;
+  erros: Record<string, string>; // campo → mensagem. UMA por campo.
+  valores: Record<string, string>; // o que a pessoa digitou, para devolver preenchido
+  mensagem?: string; // recado geral: sucesso, ou falha que não é de campo
+};
+
+/* O estado antes de qualquer envio. Uma constante só, exportada, porque um
+   objeto literal criado dentro do componente muda de identidade a cada
+   render sem precisar. */
+export const ESTADO_INICIAL: Estado = { ok: false, erros: {}, valores: {} };

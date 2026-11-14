@@ -11,6 +11,7 @@ export default function Cabecalho() {
         <MenuLink href="/">Início</MenuLink>
         <MenuLink href="/vagas">Vagas</MenuLink>
         <MenuLink href="/empresas">Empresas</MenuLink>
+        <MenuLink href="/vagas/nova">Publicar vaga</MenuLink>
         <MenuLink href="/sobre">Sobre</MenuLink>
         <MenuLink href="/termos">Termos</MenuLink>
       </nav>

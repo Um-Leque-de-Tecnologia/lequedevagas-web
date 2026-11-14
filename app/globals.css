@@ -189,3 +189,57 @@ a { color: inherit; }
   background: #18181b;
   animation: pulsa 1.2s ease-in-out infinite;
 }
+
+/* ---------- formulários com Server Action (aula 05) ----------
+   Os formulários de publicar, editar e candidatar-se usam a mesma
+   .formulario da aula 03 — só ganharam select, textarea, checkbox e o botão
+   que diz "Enviando…". */
+
+.formulario select,
+.formulario textarea {
+  padding: 10px 12px;
+  border: 1px solid #27272a;
+  border-radius: 10px;
+  background: #18181b;
+  color: #fafafa;
+  font: inherit;
+}
+.formulario textarea { resize: vertical; }
+
+.formulario fieldset {
+  display: grid;
+  gap: 6px;
+  padding: 12px 16px;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+}
+.formulario legend { padding: 0 4px; color: #a1a1aa; font-size: 14px; }
+
+/* O <label> em volta do checkbox: clicar no texto marca a caixa. */
+.formulario label.caixa { display: flex; align-items: center; gap: 8px; color: #fafafa; }
+
+.botao, .formulario .botao {
+  justify-self: start;
+  padding: 10px 16px;
+  border: 1px solid #fafafa;
+  border-radius: 10px;
+  background: #fafafa;
+  color: #09090b;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.botao:disabled { opacity: .6; cursor: progress; }
+
+.salvo { color: #bbf7d0; font-size: 14px; margin: 0; }
+
+/* O Arquivar dentro do cartão: discreto, embaixo do link. */
+.arquivar { margin-top: 8px; }
+.arquivar .botao {
+  padding: 4px 10px;
+  border-color: #3f3f46;
+  background: transparent;
+  color: #fda4af;
+  font-size: 13px;
+  font-weight: 400;
+}

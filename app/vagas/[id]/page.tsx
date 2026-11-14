@@ -68,7 +68,7 @@ export default async function PaginaDaVaga({ params }: Props) {
       <DescricaoDaVaga texto={vaga.descricao} />
 
       <h2>Candidatar-se</h2>
-      <FormularioDeCandidatura tituloDaVaga={vaga.titulo} />
+      <FormularioDeCandidatura vaga={vaga} />
 
       <p>
         <Link href="/vagas">← todas as vagas</Link>

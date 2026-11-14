@@ -4,8 +4,8 @@ Projeto de referência do curso **Introdução ao Next.js** (NickDev). Um mural 
 vagas de tecnologia para quem está migrando de carreira.
 
 Este repositório está **no estado esperado depois dos desafios das aulas 01 a
-04**. Ele existe para você comparar com o seu: abrir um arquivo, ver como ficou
-aqui e entender por que. Não é para clonar e entregar — o que vale nota é o
+05**. Ele existe para você comparar com o seu: abrir um arquivo, ver como ficou
+aqui e entender por quê. Não é para clonar e entregar — o que vale nota é o
 seu, com os seus dados e as suas decisões.
 
 ## Rodar
@@ -28,6 +28,11 @@ vagas é de 60 segundos, então a página serve a cópia guardada por até um mi
 antes de buscar de novo. Some a isso o tempo que o `raw.githubusercontent.com`
 leva para servir o arquivo novo. As empresas usam `revalidate: 3600` — uma hora
 —, porque empresa muda muito menos que vaga.
+
+**O que se publica pelo site aparece na hora** — mas só até o servidor
+reiniciar. Na aula 05 as vagas criadas, as arquivadas, as candidaturas e os
+perfis editados moram num array em memória dentro do `lib/api.ts`: um
+`npm run dev` de novo e tudo some. É a peça que falta, e ela tem data: aula 06.
 
 ## O que tem aqui, aula por aula
 
@@ -76,18 +81,51 @@ viraram `dados/*.json` buscados por rede, e os tipos ficaram sozinhos em
 A aula 03 fica inteira de pé: todos os componentes de cliente continuam iguais,
 com o mesmo `useState`. O que mudou é de onde vem a lista que eles recebem.
 
+**Aula 05 — cada frente ganha um verbo (Server Actions).**
+
+| Onde | O que ensina |
+| --- | --- |
+| `app/**/acoes.ts` | `"use server"` na primeira linha; `safeParse` antes de tudo; revalidar antes de sair; `redirect` fora de `try` |
+| `lib/esquemas.ts` | os esquemas do Zod juntos, com mensagens em português — e o checkbox com `.optional().transform()` |
+| `lib/formulario.ts` | `porCampo` (um erro por campo) e `valoresDe` (o formulário volta preenchido) |
+| `lib/tipos.ts` | o tipo `Estado`, que toda ação devolve, e o `ESTADO_INICIAL` |
+| `lib/api.ts` | as funções de escrita, e o depósito em memória que **só ele** conhece |
+| `components/BotaoDeEnviar.tsx` | `useFormStatus` — num componente **filho** do `<form>`, senão mente |
+| `app/vagas/nova/` | a vaga nasce de uma tela, com o id gerado no servidor |
+| `app/empresas/[slug]/editar/` | `useActionState`, estado de sucesso sem redirect, e o slug preso com `.bind` |
+| `components/FormularioDeCandidatura.tsx` | de `onSubmit` para `action` — funciona sem JavaScript; a lista com `getAll` |
+| `components/CardDeVaga.tsx` | o Arquivar: um `<form>` por cartão, e `revalidatePath` (não `revalidateTag`) |
+
 ## O que NÃO tem, de propósito
 
 Se você achar que está faltando, provavelmente está — mas na aula seguinte.
 
 - **Tailwind.** CSS comum até a aula 08.
-- **Autenticação de verdade.** O formulário de candidatura guarda o que você
-  digita só na memória da aba. Nada é enviado, nada é salvo. Aula 07.
-- **Server Actions.** O formulário não escreve em lugar nenhum: aula 05.
-- **Banco de dados.** A fonte é um JSON no GitHub. Trocá-la é mudar uma linha
-  em `lib/api.ts`, e nenhuma página fica sabendo — é o ponto do arquivo existir.
+- **Banco de dados.** O que se escreve pelo site some quando o servidor
+  reinicia. Aula 06 — e só o `lib/api.ts` vai mudar.
+- **Saber quem é quem.** Hoje qualquer pessoa publica por qualquer empresa,
+  edita qualquer perfil e arquiva qualquer vaga. Aula 07.
+- **Validação no cliente.** Quem valida é só o servidor — e ele é quem vale.
 
 ## Detalhes que costumam pegar
+
+**`"use server"` é a primeira linha do arquivo.** Depois de um `import` ela não
+vale, e o erro fala de "Functions cannot be passed directly to Client
+Components", sem mencionar a diretiva.
+
+**A ação do `useActionState` recebe dois parâmetros**: `(estadoAnterior,
+dados)`. Com um só, ela recebe o estado no lugar do `FormData`, e todo campo
+vira `undefined` sem erro nenhum.
+
+**O `redirect` lança.** Por isso ele é a última linha da ação, fora de
+qualquer `try`: um `catch` em volta engole o redirecionamento em silêncio.
+
+**`revalidateTag("vagas")` não tira a arquivada da tela.** Ele busca o
+`vagas.json` de novo — e o JSON volta igual, porque quem guardou a arquivada
+foi o array. O que precisa ser refeito é a renderização: `revalidatePath`.
+
+**Só a última habilidade chega?** `Object.fromEntries` guarda um valor por
+chave, e são cinco checkboxes com o mesmo `name`. Use `dados.getAll()`.
 
 **`error.tsx` recebe `retry`, não `reset`.** O nome mudou no Next 16 e o antigo
 não existe mais — tutorial (ou material de aula) que mostra `reset` é de outra
@@ -129,19 +167,26 @@ app/
 │   ├── layout.tsx                 moldura da área de vagas
 │   ├── loading.tsx                espera da listagem
 │   ├── page.tsx                   /vagas — não é async; dois <Suspense>
+│   ├── acoes.ts                   arquivar
+│   ├── nova/                      publicar (página, formulário, ação)
 │   └── [id]/
 │       ├── page.tsx               /vagas/1 — generateStaticParams
+│       ├── acoes.ts               a candidatura
 │       ├── loading.tsx            esqueleto do detalhe
 │       ├── error.tsx              a rede caiu
 │       └── not-found.tsx          a vaga não existe
 └── empresas/
     ├── page.tsx                   /empresas
-    └── [slug]/page.tsx            /empresas/aurora-tech
+    └── [slug]/
+        ├── page.tsx               /empresas/aurora-tech
+        └── editar/                editar o perfil
 components/                        as peças; só as com memória são de cliente
 dados/                             vagas.json e empresas.json — a fonte
 lib/
-├── tipos.ts                       só os tipos, nenhum dado
-└── api.ts                         o único arquivo que conhece a URL
+├── tipos.ts                       os tipos, o Estado e o ESTADO_INICIAL
+├── api.ts                         o único que lê e o único que guarda
+├── esquemas.ts                    os esquemas do Zod
+└── formulario.ts                  porCampo e valoresDe
 ```
 
 ## Licença

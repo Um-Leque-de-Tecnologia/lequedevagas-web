@@ -1,5 +1,6 @@
 // SEM "use client". É uma página de servidor, e continua sendo.
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { listarEmpresas, buscarEmpresa, listarVagas } from "@/lib/api";
 import AbasDaEmpresa from "@/components/AbasDaEmpresa";
@@ -51,6 +52,12 @@ export default async function PaginaDaEmpresa({ params }: Props) {
       {/* AbasDaEmpresa continua cliente e continua com useState("sobre"). A
           aula 03 fica inteira de pé: só a origem dos dados mudou. */}
       <AbasDaEmpresa empresa={empresa} vagas={vagasDaEmpresa} />
+
+      {/* Aula 05: qualquer pessoa chega aqui e edita. Saber QUEM edita é a
+          aula 07 — e aí este link sai desta página, que é igual para todos. */}
+      <p>
+        <Link href={`/empresas/${empresa.slug}/editar`}>Editar o perfil da empresa</Link>
+      </p>
     </section>
   );
 }

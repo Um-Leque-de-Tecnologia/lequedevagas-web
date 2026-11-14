@@ -1,119 +1,80 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState } from "react";
+import { enviarCandidatura } from "@/app/vagas/[id]/acoes";
+import BotaoDeEnviar from "@/components/BotaoDeEnviar";
+import { ESTADO_INICIAL } from "@/lib/tipos";
+import type { Vaga } from "@/lib/tipos";
 
-export default function FormularioDeCandidatura({
-  tituloDaVaga,
-}: {
-  tituloDaVaga: string;
-}) {
-  // Cinco memórias. Cada uma guarda uma coisa que o servidor não tem como
-  // saber: o que a pessoa digitou nesta aba, agora.
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [rascunho, setRascunho] = useState("");
-  const [habilidades, setHabilidades] = useState<string[]>([]);
-  const [enviada, setEnviada] = useState(false);
+const HABILIDADES = ["HTML", "CSS", "JavaScript", "React", "SQL"];
 
-  // Estado derivado — nada disto vira useState.
-  // "O botão está habilitado?" é uma conta, não uma lembrança.
-  const emailParece = email.includes("@") && email.includes(".");
-  const podeEnviar = nome.trim() !== "" && emailParece && habilidades.length > 0;
+/**
+ * A candidatura, de `onSubmit` para `action` (aula 05).
+ *
+ * Na aula 03 eram cinco useState, um preventDefault e um "enviada" que só
+ * existia nesta aba. Agora o dado vai para o servidor, e o formulário
+ * funciona até com o JavaScript desligado.
+ */
+export default function FormularioDeCandidatura({ vaga }: { vaga: Vaga }) {
+  const [estado, acaoDoForm] = useActionState(enviarCandidatura, ESTADO_INICIAL);
+  const { valores, erros } = estado;
 
-  function adicionar() {
-    const nova = rascunho.trim();
-    // vazio ou repetido: não faz nada, e não some com o que a pessoa digitou
-    if (nova === "" || habilidades.includes(nova)) return;
-    setHabilidades([...habilidades, nova]); // lista NOVA, não push
-    setRascunho("");
-  }
-
-  // Duas telas no mesmo arquivo. O "enviada" decide qual delas aparece.
-  if (enviada) {
+  // A tela de sucesso da aula 03 continua existindo. O que mudou é quem a
+  // liga: era um useState local, agora é o `ok` que veio do servidor.
+  if (estado.ok) {
     return (
-      <div className="ok">
-        <h3>Candidatura registrada ✓</h3>
-        <p>
-          {nome}, guardamos a sua candidatura para{" "}
-          <strong>{tituloDaVaga}</strong> com {habilidades.length}{" "}
-          habilidade(s).
-        </p>
-        {/* Voltar é desligar este estado: os outros quatro continuam lá. */}
-        <button type="button" onClick={() => setEnviada(false)}>
-          corrigir alguma coisa
-        </button>
+      <div className="ok" role="status">
+        <h3>Candidatura enviada</h3>
+        <p>A {vaga.empresa} vai receber o seu contato.</p>
       </div>
     );
   }
 
   return (
-    <form
-      className="formulario"
-      onSubmit={(e) => {
-        // sem isto o navegador recarrega a página e apaga tudo
-        e.preventDefault();
-        setEnviada(true);
-      }}
-    >
+    <form action={acaoDoForm} className="formulario" noValidate>
+      {/* Campo escondido: a ação precisa saber de QUAL vaga é. Aqui um hidden
+          serve — trocá-lo só faz a pessoa se candidatar a outra vaga pública,
+          que é uma coisa que ela já podia fazer clicando. */}
+      <input type="hidden" name="vagaId" value={vaga.id} />
+
+      {/* Sem value, sem onChange, sem useState: o campo voltou a ser NÃO
+          CONTROLADO, e é o <form> que sabe o que tem dentro dele. */}
       <label>
-        Nome
-        {/* value + onChange andam JUNTOS. Só o value prende o campo. */}
-        <input value={nome} onChange={(e) => setNome(e.target.value)} />
+        Nome completo
+        <input name="nome" autoComplete="name" defaultValue={valores.nome} />
       </label>
+      {erros.nome && <p className="erro">{erros.nome}</p>}
 
       <label>
         E-mail
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <input name="email" type="email" autoComplete="email" defaultValue={valores.email} />
       </label>
-      {/* o aviso só aparece depois que a pessoa começou a digitar */}
-      {email !== "" && !emailParece && (
-        <p className="erro">Isso não parece um e-mail.</p>
-      )}
+      {erros.email && <p className="erro">{erros.email}</p>}
 
-      <label>
-        Habilidades
-        <input
-          value={rascunho}
-          onChange={(e) => setRascunho(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              // dentro de um form, Enter envia. Aqui ele adiciona.
-              e.preventDefault();
-              adicionar();
-            }
-          }}
-        />
-      </label>
-      <button type="button" onClick={adicionar}>
-        adicionar
-      </button>
-
-      <ul className="chips">
-        {habilidades.map((h) => (
-          <li key={h}>
+      {/* A LISTA. Vários checkboxes com o MESMO name — do outro lado,
+          dados.getAll("habilidades"). É a forma que funciona sem JS. */}
+      <fieldset>
+        <legend>Habilidades</legend>
+        {HABILIDADES.map((h) => (
+          <label key={h} className="caixa">
+            <input
+              type="checkbox"
+              name="habilidades"
+              value={h}
+              defaultChecked={valores.habilidades?.split(",").includes(h)}
+            />
             {h}
-            <button
-              type="button"
-              aria-label={`remover ${h}`}
-              // filter também devolve lista NOVA. É o mesmo princípio.
-              onClick={() =>
-                setHabilidades(habilidades.filter((x) => x !== h))
-              }
-            >
-              ×
-            </button>
-          </li>
+          </label>
         ))}
-      </ul>
+      </fieldset>
+      {erros.habilidades && <p className="erro">{erros.habilidades}</p>}
 
-      {/* disabled sai de podeEnviar, que é conta. Não há useState de botão. */}
-      <button type="submit" disabled={!podeEnviar}>
-        Enviar candidatura
-      </button>
+      <BotaoDeEnviar>Enviar candidatura</BotaoDeEnviar>
+      {estado.mensagem && (
+        <p role="alert" className="erro">
+          {estado.mensagem}
+        </p>
+      )}
     </form>
   );
 }
