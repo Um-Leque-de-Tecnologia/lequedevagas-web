@@ -8,7 +8,8 @@ import { porCampo, valoresDe } from "@/lib/formulario";
 import type { Estado, Vaga } from "@/lib/tipos";
 
 /**
- * Publicar uma vaga (aula 05, frente 1). A ordem das linhas é o conteúdo.
+ * Publicar uma vaga (aula 05, frente 1 → aula 06). A ordem das linhas é o
+ * conteúdo.
  *
  * DOIS parâmetros: com useActionState o Next chama a ação com o estado
  * anterior na frente. Quem declara só (dados: FormData) recebe o ESTADO no
@@ -40,13 +41,14 @@ export async function criarVaga(estadoAnterior: Estado, dados: FormData): Promis
     id: crypto.randomUUID(),
     empresa: empresa.nome,
   };
-  guardarVaga(vaga);
+  await guardarVaga(vaga); // aula 06: virou banco, e ganhou o await
 
   /* 4. AVISE O CACHE. Toda rota que mostra a lista ou a conta de vagas —
         senão a vaga existe e a listagem não mostra, porque na aula 04 vocês
         mandaram, por escrito, que ela não fosse buscar antes de 60 segundos. */
   revalidatePath("/");
   revalidatePath("/vagas");
+  revalidatePath("/empresas");
   revalidatePath(`/empresas/${empresa.slug}`);
 
   /* 5. SAIA. O redirect é a ÚLTIMA linha, e fora de qualquer try/catch — ele

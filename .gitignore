@@ -14,3 +14,9 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# prisma (aula 06): o banco da sua máquina e o endereço dele não vão para o Git.
+# A pasta prisma/migrations/ vai — é o histórico de como a tabela chegou aqui.
+.env
+*.db
+*.db-journal

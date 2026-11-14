@@ -7,7 +7,7 @@ import { porCampo, valoresDe } from "@/lib/formulario";
 import type { Estado } from "@/lib/tipos";
 
 /**
- * Editar o perfil da empresa (aula 05, frente 2).
+ * Editar o perfil da empresa (aula 05, frente 2 → aula 06).
  *
  * O slug NÃO vem do formulário: ele é preso à ação com .bind() no
  * componente, e chega como primeiro argumento, antes do estado. Um
@@ -32,7 +32,7 @@ export async function salvarEmpresa(
   }
 
   // O slug é o de sempre; o resto, o que passou pelo esquema.
-  guardarEmpresa({ ...atual, ...analise.data, slug });
+  await guardarEmpresa({ ...atual, ...analise.data, slug });
 
   /* DUAS rotas mostram este dado. Revalidar só a página da empresa deixaria
      a listagem /empresas com o nome velho — o tipo de bug que ninguém vê

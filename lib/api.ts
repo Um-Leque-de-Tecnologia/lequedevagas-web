@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/prisma";
 import type { Candidatura, Empresa, Vaga } from "@/lib/tipos";
 
 /**
@@ -5,8 +6,12 @@ import type { Candidatura, Empresa, Vaga } from "@/lib/tipos";
  * e para onde ele vai.
  *
  * - aula 04: o único com `fetch` e com a URL do JSON publicado;
- * - aula 05: o único que guarda — as ações chamam as funções de escrita, e
- *   fora daqui ninguém sabe que existe um array.
+ * - aula 05: o único que guarda — as ações chamam as funções de escrita;
+ * - aula 06: o único que fala com o banco. O array em memória da aula 05
+ *   virou Prisma aqui dentro, e NENHUMA página mudou de linha por isso.
+ *
+ * Duas fontes convivem, e a regra de cada uma está no DADOS.md: o JSON é
+ * o que o time publica no repositório; o banco é o que se escreve pelo site.
  */
 
 // ─── A FONTE PUBLICADA (aula 04) ────────────────────────────────────────
@@ -21,23 +26,6 @@ const CACHE_VAGAS = { next: { revalidate: 60, tags: ["vagas"] } };
 /* Uma hora para empresa: ela muda muito menos que vaga. */
 const CACHE_EMPRESAS = { next: { revalidate: 3600, tags: ["empresas"] } };
 
-// ─── O DEPÓSITO (aula 05) ───────────────────────────────────────────────
-// A memória do PROCESSO. Some quando o servidor reinicia, e no site
-// publicado cada instância tem a sua. Isso não é gambiarra escondida: é a
-// peça que falta, e ela tem data — AULA 06, banco de dados.
-//
-// O que importa hoje é que ela mora AQUI, atrás das mesmas funções que o
-// resto do projeto já chama. Na aula 06, estas linhas viram banco e nenhuma
-// ação, nenhum formulário e nenhuma página fica sabendo.
-const criadas: Vaga[] = [];
-const arquivadas = new Set<string>();
-const candidaturas: Candidatura[] = [];
-const editadas = new Map<string, Empresa>();
-
-// ─── LEITURA ────────────────────────────────────────────────────────────
-
-/* A função da aula 04 troca de nome e vira privada: ela é só a metade
-   "publicada" da lista, e ninguém de fora deveria pedir só ela. */
 async function buscarVagasPublicadas(): Promise<Vaga[]> {
   const resposta = await fetch(`${FONTE}/vagas.json`, CACHE_VAGAS);
 
@@ -53,18 +41,43 @@ async function buscarEmpresasPublicadas(): Promise<Empresa[]> {
   return resposta.json();
 }
 
+/* Os campos do type, e só eles. O banco tem mais (criadaEm, arquivada,
+   editadaEm) — e eles ficam aqui dentro: a página não precisa saber que
+   existem, e um Date a mais viajando para o cliente é peso à toa. */
+const CAMPOS_DA_VAGA = {
+  id: true,
+  titulo: true,
+  empresa: true,
+  empresaSlug: true,
+  area: true,
+  senioridade: true,
+  local: true,
+  aceitaIniciante: true,
+  descricao: true,
+} as const;
+
+const CAMPOS_DA_EMPRESA = { slug: true, nome: true, sobre: true, site: true } as const;
+
+// ─── LEITURA ────────────────────────────────────────────────────────────
+
 /**
- * O NOME NÃO MUDA. Toda página do projeto chama esta função desde a aula 04
- * — a listagem, o detalhe, o generateStaticParams, os números. Mudar o que
- * ela faz por dentro sem mudar a assinatura é exatamente a compra que o
- * lib/api.ts fez naquela semana, sendo usada agora.
+ * O NOME NÃO MUDA desde a aula 04. A listagem, o detalhe, o
+ * generateStaticParams e as empresas chamam esta função — e nenhuma delas
+ * soube quando o "por dentro" virou banco + JSON.
  */
 export async function listarVagas(): Promise<Vaga[]> {
-  const publicadas = await buscarVagasPublicadas();
+  const [criadas, publicadas] = await Promise.all([
+    prisma.vaga.findMany({
+      // Arquivada some pelo FILTRO DA CONSULTA, e não num .filter() depois:
+      // o banco não manda pela rede a linha que ninguém vai mostrar.
+      where: { arquivada: false },
+      orderBy: { criadaEm: "desc" }, // a mais nova aparece primeiro
+      select: CAMPOS_DA_VAGA,
+    }),
+    buscarVagasPublicadas(),
+  ]);
 
-  // A regra das arquivadas mora AQUI, e não em cada componente: o
-  // NumerosDoCatalogo conta o que recebe, e o número cai sozinho.
-  return [...criadas, ...publicadas].filter((vaga) => !arquivadas.has(vaga.id));
+  return [...criadas, ...publicadas];
 }
 
 /**
@@ -76,38 +89,107 @@ export async function buscarVaga(id: string): Promise<Vaga | undefined> {
   return vagas.find((vaga) => vaga.id === id);
 }
 
-/* Mesma ideia do lado das empresas, e a edição depende dela: sem esta linha
-   o guardarEmpresa grava num Map que ninguém lê, e a edição "funciona" sem
-   nunca aparecer na tela. Escrita sem leitura do outro lado é o bug mais
-   silencioso da semana. */
+/**
+ * Os números do catálogo (aula 06, frente 4). O banco CONTA e devolve um
+ * número — nenhuma linha atravessa a rede para virar `.length`. As do JSON
+ * já vieram inteiras (e do cache), então ali a conta é no JavaScript.
+ */
+export async function contarVagas(): Promise<{ total: number; iniciantes: number }> {
+  const [doBanco, iniciantesDoBanco, publicadas] = await Promise.all([
+    prisma.vaga.count({ where: { arquivada: false } }),
+    prisma.vaga.count({ where: { arquivada: false, aceitaIniciante: true } }),
+    buscarVagasPublicadas(),
+  ]);
+
+  return {
+    total: doBanco + publicadas.length,
+    iniciantes: iniciantesDoBanco + publicadas.filter((v) => v.aceitaIniciante).length,
+  };
+}
+
+/**
+ * A vaga como o BANCO a conhece: a empresa, se está arquivada e quantas
+ * candidaturas ela tem. Vaga do dados/vagas.json não está na tabela — volta
+ * null. É o que a candidatura e o arquivar precisam para decidir, e o que a
+ * página da vaga usa para mostrar o número.
+ */
+export async function buscarVagaNoBanco(id: string) {
+  return prisma.vaga.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      empresaSlug: true,
+      arquivada: true,
+      // `_count` pede ao banco só o NÚMERO, sem trazer as linhas.
+      _count: { select: { candidaturas: true } },
+    },
+  });
+}
+
+/**
+ * Empresa editada pelo site vence a publicada pelo time (DADOS.md). A
+ * listagem troca, uma a uma, as que têm versão no banco.
+ */
 export async function listarEmpresas(): Promise<Empresa[]> {
-  const publicadas = await buscarEmpresasPublicadas();
-  return publicadas.map((empresa) => editadas.get(empresa.slug) ?? empresa);
+  const [publicadas, editadas] = await Promise.all([
+    buscarEmpresasPublicadas(),
+    prisma.empresa.findMany({ select: CAMPOS_DA_EMPRESA }),
+  ]);
+
+  const editadaPorSlug = new Map(editadas.map((empresa) => [empresa.slug, empresa]));
+  return publicadas.map((empresa) => editadaPorSlug.get(empresa.slug) ?? empresa);
 }
 
 export async function buscarEmpresa(slug: string): Promise<Empresa | undefined> {
-  const empresas = await listarEmpresas();
-  return empresas.find((empresa) => empresa.slug === slug);
+  // 1. o que foi editado pelo site tem prioridade
+  const editada = await prisma.empresa.findUnique({
+    where: { slug },
+    select: CAMPOS_DA_EMPRESA,
+  });
+  if (editada) return editada;
+
+  // 2. senão, vale a publicada pelo time
+  const publicadas = await buscarEmpresasPublicadas();
+  return publicadas.find((empresa) => empresa.slug === slug);
 }
 
 // ─── ESCRITA ────────────────────────────────────────────────────────────
-// Nenhuma delas é `async`, porque escrever em memória não espera nada. Pôr
-// `async` agora "para já ficar parecido com banco" é adivinhar o futuro; na
-// aula 06 o TypeScript aponta cada chamada que passa a precisar de await.
+// Na aula 05 nenhuma era async: escreviam num array. Na aula 06 viraram
+// banco, e só aí ganharam o `async` — o TypeScript apontou cada chamada.
 
-export function guardarVaga(vaga: Vaga) {
-  criadas.unshift(vaga); // no começo: a mais nova aparece primeiro
+export async function guardarVaga(vaga: Vaga) {
+  await prisma.vaga.create({ data: vaga });
 }
 
-/** Arquivar não apaga: marca. A vaga só some da listagem. */
-export function arquivarVaga(id: string) {
-  arquivadas.add(id);
+/** Arquivar não apaga: marca. Apagar perderia as candidaturas e o histórico. */
+export async function arquivarVaga(id: string) {
+  await prisma.vaga.update({ where: { id }, data: { arquivada: true } });
 }
 
-export function guardarCandidatura(candidatura: Candidatura) {
-  candidaturas.push(candidatura);
+export async function guardarCandidatura(candidatura: Candidatura) {
+  await prisma.candidatura.create({
+    data: {
+      id: candidatura.id,
+      vagaId: candidatura.vagaId,
+      nome: candidatura.nome,
+      email: candidatura.email,
+      // SQLite não guarda lista: vira texto aqui, e só aqui.
+      habilidades: candidatura.habilidades.join(", "),
+      criadaEm: new Date(candidatura.enviadaEm),
+    },
+  });
 }
 
-export function guardarEmpresa(empresa: Empresa) {
-  editadas.set(empresa.slug, empresa);
+/**
+ * upsert: cria se não existe, atualiza se existe. É a regra "o banco vence"
+ * virando uma chamada só — a primeira edição copia a empresa do JSON para o
+ * banco, e dali em diante é a do banco que aparece.
+ */
+export async function guardarEmpresa(empresa: Empresa) {
+  await prisma.empresa.upsert({
+    where: { slug: empresa.slug },
+    update: empresa,
+    create: empresa,
+  });
 }
+

@@ -1,18 +1,20 @@
-import { listarVagas } from "@/lib/api";
+import { contarVagas } from "@/lib/api";
 
 /**
- * A REGRA QUE ECONOMIZA UMA HORA: quem espera é este componente, e o `await`
- * mora AQUI DENTRO. Se a página fizesse o await e passasse o número por prop,
- * ela já teria esperado — e o `<Suspense>` em volta não teria mais nada a
- * fazer, porque não sobrou espera para ele cobrir.
+ * A REGRA QUE ECONOMIZA UMA HORA (aula 04): quem espera é este componente, e
+ * o `await` mora AQUI DENTRO. Se a página fizesse o await e passasse o
+ * número por prop, o `<Suspense>` em volta não teria mais nada a cobrir.
+ *
+ * Aula 06: ele não traz mais a lista inteira para medir o tamanho — o banco
+ * conta. E quando alguém arquiva, o número cai sozinho: a ação revalida a
+ * rota, este componente roda de novo, e a conta já vem sem a arquivada.
  */
 export default async function NumerosDoCatalogo() {
-  const vagas = await listarVagas();
-  const iniciantes = vagas.filter((vaga) => vaga.aceitaIniciante).length;
+  const { total, iniciantes } = await contarVagas();
 
   return (
     <p className="numeros">
-      <strong>{vagas.length}</strong> vagas ·{" "}
+      <strong>{total}</strong> vagas ·{" "}
       <strong>{iniciantes}</strong> aceitam quem está começando
     </p>
   );

@@ -2,14 +2,17 @@
   "name": "lequedevagas-web",
   "version": "0.1.0",
   "private": true,
-  "description": "Leque de Vagas — projeto de referencia do curso Introducao ao Next.js (NickDev), no estado do fim da aula 05.",
+  "description": "Leque de Vagas — projeto de referencia do curso Introducao ao Next.js (NickDev), no estado do fim da aula 06.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@prisma/client": "6.19.3",
     "next": "^16.3.0",
+    "prisma": "6.19.3",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "zod": "4.6.7"
@@ -18,6 +21,7 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "17.2.3",
     "typescript": "^5"
   }
 }

@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { listarVagas, buscarVaga } from "@/lib/api";
+import { listarVagas, buscarVaga, buscarVagaNoBanco } from "@/lib/api";
 import BotaoCopiarLink from "@/components/BotaoCopiarLink";
 import DescricaoDaVaga from "@/components/DescricaoDaVaga";
 import FormularioDeCandidatura from "@/components/FormularioDeCandidatura";
@@ -40,9 +40,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PaginaDaVaga({ params }: Props) {
   // await troca o "vale" pelo valor
   const { id } = await params;
-  const vaga = await buscarVaga(id);
+  const [vaga, noBanco] = await Promise.all([buscarVaga(id), buscarVagaNoBanco(id)]);
 
-  /* O id que não existe. notFound() não devolve nada — ele interrompe a
+  /* O id que não existe — ou que foi arquivado. notFound() não devolve nada — ele interrompe a
      renderização e entrega o not-found.tsx desta pasta, escrito na aula 02,
      que só agora tem quem o chame. */
   if (!vaga) notFound();
@@ -68,7 +68,25 @@ export default async function PaginaDaVaga({ params }: Props) {
       <DescricaoDaVaga texto={vaga.descricao} />
 
       <h2>Candidatar-se</h2>
-      <FormularioDeCandidatura vaga={vaga} />
+      {noBanco ? (
+        <>
+          {/* Contado pelo banco (aula 06): o número, e não as linhas. */}
+          <p className="numeros">
+            {noBanco._count.candidaturas === 1
+              ? "1 candidatura pelo site até agora."
+              : `${noBanco._count.candidaturas} candidaturas pelo site até agora.`}
+          </p>
+          <FormularioDeCandidatura vaga={vaga} />
+        </>
+      ) : (
+        /* Vaga do dados/vagas.json não está na tabela, e a candidatura é uma
+           relação com a tabela. Ver DADOS.md. */
+        <p>
+          Esta vaga foi publicada pelo time do Leque de Vagas e ainda não recebe
+          candidatura pelo site. Fale com a {vaga.empresa} pelo{" "}
+          <Link href={`/empresas/${vaga.empresaSlug}`}>perfil da empresa</Link>.
+        </p>
+      )}
 
       <p>
         <Link href="/vagas">← todas as vagas</Link>

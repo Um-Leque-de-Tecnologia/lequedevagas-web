@@ -4,35 +4,46 @@ Projeto de referência do curso **Introdução ao Next.js** (NickDev). Um mural 
 vagas de tecnologia para quem está migrando de carreira.
 
 Este repositório está **no estado esperado depois dos desafios das aulas 01 a
-05**. Ele existe para você comparar com o seu: abrir um arquivo, ver como ficou
+06**. Ele existe para você comparar com o seu: abrir um arquivo, ver como ficou
 aqui e entender por quê. Não é para clonar e entregar — o que vale nota é o
 seu, com os seus dados e as suas decisões.
 
 ## Rodar
 
+Precisa de Node 20 ou mais novo (conferido com o 24).
+
 ```bash
-npm install
+npm ci                     # instala, e o postinstall roda o prisma generate
+cp .env.example .env       # o DATABASE_URL
+npx prisma migrate dev     # monta o prisma/dev.db a partir das migrations
 npm run dev
 ```
 
-Abre em <http://localhost:3000>. Precisa de Node 20 ou mais novo.
+Abre em <http://localhost:3000>.
 
-O `npm run build` e o `npm run dev` **buscam os dados pela rede**, do próprio
-repositório no GitHub (veja `lib/api.ts`). Sem internet, o build não passa — e
-isso é sobre o projeto, não sobre a sua máquina.
+O `dev.db` e o `.env` **não vão para o Git**. O `npm run build` e o
+`npm run dev` também **buscam dados pela rede**, do próprio repositório no
+GitHub (veja `lib/api.ts`): sem internet, o build não passa.
 
-## Quanto tempo uma vaga nova leva para aparecer
+**No Windows, pare o `npm run dev` antes de qualquer comando do Prisma.** Com o
+servidor aberto, o `prisma generate` falha com `EPERM: operation not permitted,
+rename … query_engine-windows.dll.node`: a migration é aplicada e o cliente,
+não. Pare o dev, rode `npx prisma generate` e suba de novo.
 
-**No pior caso, pouco mais de um minuto depois do push.** O `revalidate` das
-vagas é de 60 segundos, então a página serve a cópia guardada por até um minuto
-antes de buscar de novo. Some a isso o tempo que o `raw.githubusercontent.com`
-leva para servir o arquivo novo. As empresas usam `revalidate: 3600` — uma hora
-—, porque empresa muda muito menos que vaga.
+## Onde os dados vivem
 
-**O que se publica pelo site aparece na hora** — mas só até o servidor
-reiniciar. Na aula 05 as vagas criadas, as arquivadas, as candidaturas e os
-perfis editados moram num array em memória dentro do `lib/api.ts`: um
-`npm run dev` de novo e tudo some. É a peça que falta, e ela tem data: aula 06.
+Em dois lugares, e só o `lib/api.ts` sabe disso — as regras estão no
+[`DADOS.md`](DADOS.md):
+
+- **O que o time publica** mora em `dados/vagas.json` e `dados/empresas.json`,
+  buscados do GitHub. Uma vaga nova ali aparece no site **no pior caso pouco
+  mais de um minuto depois do push** (`revalidate: 60`); uma empresa, em até
+  uma hora (`revalidate: 3600`).
+- **O que se escreve pelo site** — vagas publicadas, perfis editados e
+  candidaturas — mora num banco SQLite, o `prisma/dev.db`. Ele **sobrevive ao
+  restart** do servidor (na aula 05 era um array em memória, e sumia). Mas ele
+  existe **só na sua máquina**: o site publicado na Vercel não tem esse
+  arquivo. Colocar o backend no ar é a aula 09.
 
 ## O que tem aqui, aula por aula
 
@@ -96,18 +107,33 @@ com o mesmo `useState`. O que mudou é de onde vem a lista que eles recebem.
 | `components/FormularioDeCandidatura.tsx` | de `onSubmit` para `action` — funciona sem JavaScript; a lista com `getAll` |
 | `components/CardDeVaga.tsx` | o Arquivar: um `<form>` por cartão, e `revalidatePath` (não `revalidateTag`) |
 
+**Aula 06 — o dado para de sumir (banco).**
+
+| Onde | O que ensina |
+| --- | --- |
+| `prisma/schema.prisma` | Vaga, Empresa e Candidatura — a primeira relação do projeto |
+| `prisma/migrations/` | o histórico versionado, uma migration por aula |
+| `lib/prisma.ts` | o cliente único, que sobrevive ao hot reload |
+| `lib/api.ts` | o array virou banco **e nenhuma página mudou**; `count()` em vez de `.length`; arquivar é `update` |
+| `app/api/vagas/route.ts`, `app/api/empresas/[slug]/route.ts` | Route Handlers: um endereço para quem **não** é a sua tela |
+| `DADOS.md` | as decisões de dados, por escrito, antes do esquema |
+
 ## O que NÃO tem, de propósito
 
 Se você achar que está faltando, provavelmente está — mas na aula seguinte.
 
 - **Tailwind.** CSS comum até a aula 08.
-- **Banco de dados.** O que se escreve pelo site some quando o servidor
-  reinicia. Aula 06 — e só o `lib/api.ts` vai mudar.
+- **O backend no ar.** O banco é um arquivo na sua máquina; o site publicado
+  não o enxerga. Aula 09.
 - **Saber quem é quem.** Hoje qualquer pessoa publica por qualquer empresa,
   edita qualquer perfil e arquiva qualquer vaga. Aula 07.
 - **Validação no cliente.** Quem valida é só o servidor — e ele é quem vale.
 
 ## Detalhes que costumam pegar
+
+**Instale com a versão escrita.** `npm i prisma` hoje traz uma versão
+candidata de outra geração. Aqui: `prisma@6.19.3`, `@prisma/client@6.19.3` e
+`zod@4.6.7` — todas com `-E`.
 
 **`"use server"` é a primeira linha do arquivo.** Depois de um `import` ela não
 vale, e o erro fala de "Functions cannot be passed directly to Client
@@ -122,7 +148,15 @@ qualquer `try`: um `catch` em volta engole o redirecionamento em silêncio.
 
 **`revalidateTag("vagas")` não tira a arquivada da tela.** Ele busca o
 `vagas.json` de novo — e o JSON volta igual, porque quem guardou a arquivada
-foi o array. O que precisa ser refeito é a renderização: `revalidatePath`.
+foi o array. O que precisa ser refeito é a renderização: `revalidatePath`. Na
+aula 06 continua igual: quem mudou foi o banco, e o banco não avisa o cache.
+Toda ação que escreve chama `revalidatePath` para **cada** rota que mostra
+aquele dado.
+
+**As vagas do `dados/vagas.json` não recebem candidatura pelo site.** A
+candidatura é uma relação com a tabela `Vaga`, e essas vagas não estão nela —
+nem se arquivam pelo site: saem do JSON por commit, como entraram. A página
+delas avisa, e a ação recusa com mensagem. Mais em [`DADOS.md`](DADOS.md).
 
 **Só a última habilidade chega?** `Object.fromEntries` guarda um valor por
 chave, e são cinco checkboxes com o mesmo `name`. Use `dados.getAll()`.
@@ -163,6 +197,9 @@ app/
 │   ├── layout.tsx
 │   ├── termos/page.tsx            /termos
 │   └── privacidade/page.tsx       /privacidade
+├── api/
+│   ├── vagas/                     GET /api/vagas
+│   └── empresas/[slug]/           GET /api/empresas/aurora-tech
 ├── vagas/
 │   ├── layout.tsx                 moldura da área de vagas
 │   ├── loading.tsx                espera da listagem
@@ -184,9 +221,14 @@ components/                        as peças; só as com memória são de client
 dados/                             vagas.json e empresas.json — a fonte
 lib/
 ├── tipos.ts                       os tipos, o Estado e o ESTADO_INICIAL
-├── api.ts                         o único que lê e o único que guarda
+├── api.ts                         a única porta para o JSON e para o banco
+├── prisma.ts                      o cliente único
 ├── esquemas.ts                    os esquemas do Zod
 └── formulario.ts                  porCampo e valoresDe
+prisma/
+├── schema.prisma                  o banco inteiro
+└── migrations/                    uma por aula — vai para o Git
+DADOS.md                           as decisões de dados, por escrito
 ```
 
 ## Licença

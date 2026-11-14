@@ -1,12 +1,13 @@
 "use server"; // PRIMEIRA linha do arquivo. Antes de qualquer import.
 
-import { buscarVaga, guardarCandidatura } from "@/lib/api";
+import { revalidatePath } from "next/cache";
+import { buscarVagaNoBanco, guardarCandidatura } from "@/lib/api";
 import { EsquemaDaCandidatura } from "@/lib/esquemas";
 import { porCampo, valoresDe } from "@/lib/formulario";
 import type { Estado } from "@/lib/tipos";
 
 /**
- * Candidatar-se (aula 05, frente 3).
+ * Candidatar-se (aula 05, frente 3 → aula 06).
  *
  * DOIS parâmetros: com useActionState o Next chama a ação com o estado
  * anterior na frente. Quem declara só (dados: FormData) recebe o ESTADO no
@@ -32,21 +33,23 @@ export async function enviarCandidatura(
     return { ok: false, erros: porCampo(analise.error), valores };
   }
 
-  // 2. A vaga existe? O id veio de um campo escondido, e campo escondido
-  //    também se troca.
-  const vaga = await buscarVaga(analise.data.vagaId);
-  if (!vaga) {
-    return { ok: false, erros: {}, valores, mensagem: "Essa vaga não existe mais." };
+  /* 2. A RELAÇÃO OBRIGA a vaga a existir NA TABELA (aula 06). Sem esta
+        checagem, o Prisma lança, e exceção dentro de ação manda a pessoa
+        para o error.tsx. Vaga que não existe é conversa, não falha. */
+  const vaga = await buscarVagaNoBanco(analise.data.vagaId);
+  if (!vaga || vaga.arquivada) {
+    return { ok: false, erros: {}, valores, mensagem: "Esta vaga não recebe mais candidaturas." };
   }
 
-  guardarCandidatura({
+  await guardarCandidatura({
     ...analise.data,
     id: crypto.randomUUID(),
     enviadaEm: new Date().toISOString(),
   });
 
-  // Nenhum revalidate aqui: nenhuma tela pública mostra candidatura. Sim,
-  // de propósito — revalidar "por garantia" é jogar fora cache que ninguém
-  // pediu para jogar.
+  // 3. AVISE O CACHE: a página da vaga passou a mostrar quantas
+  //    candidaturas ela tem (aula 06). Na aula 05 não havia o que revalidar.
+  revalidatePath(`/vagas/${vaga.id}`);
+
   return { ok: true, erros: {}, valores: {}, mensagem: "Candidatura enviada!" };
 }
